@@ -28,6 +28,7 @@ export interface TimeRecord {
 
 export interface BasicInfo {
   reviewer: string;
+  battalion: string; // New field
   caseId: string;
   date: string; // Incident Date
   unit: string;
@@ -107,6 +108,7 @@ export const INITIAL_STATE: AppState = {
   },
   basicInfo: {
     reviewer: '',
+    battalion: '',
     caseId: '',
     date: new Date().toISOString().split('T')[0],
     unit: '',

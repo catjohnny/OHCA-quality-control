@@ -2,7 +2,7 @@
 import React from 'react';
 import { BasicInfo as BasicInfoType } from '../types';
 import { InputGroup } from './InputGroup';
-import { OHCA_TYPE_OPTIONS, NOTIFICATION_TIME_OPTIONS } from '../constants';
+import { OHCA_TYPE_OPTIONS, NOTIFICATION_TIME_OPTIONS, BATTALION_OPTIONS } from '../constants';
 
 interface Props {
   info: BasicInfoType;
@@ -34,6 +34,14 @@ export const BasicInfo: React.FC<Props> = ({ info, onChange }) => {
             required
           />
           <InputGroup
+            label="大隊別"
+            as="select"
+            options={BATTALION_OPTIONS}
+            value={info.battalion}
+            onChange={(e) => onChange('battalion', e.target.value)}
+            required
+          />
+          <InputGroup
             label="分隊 (限3個中文字以內)"
             type="text"
             placeholder="例如：新店、永和中"
@@ -42,6 +50,7 @@ export const BasicInfo: React.FC<Props> = ({ info, onChange }) => {
             required
             error={!isUnitValid ? "格式錯誤：請輸入 1 至 3 個中文字" : undefined}
             pattern="[\u4e00-\u9fa5]{1,3}"
+            className="md:col-span-2"
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

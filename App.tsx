@@ -95,13 +95,17 @@ const App: React.FC = () => {
   };
 
   const handleReset = () => {
-    if (window.confirm("確定要建立新案件嗎？\n\n這將會清除目前所有已輸入的資料，且無法復原。")) {
-      // Reset to initial state, but ensure date is today
+    if (window.confirm("確定要建立新案件嗎？\n\n這將會清除目前所有已輸入的資料，但保留審核者、大隊別與分隊資料。")) {
+      // Reset to initial state, but ensure date is today and preserve specific fields
       const freshState: AppState = {
         ...INITIAL_STATE,
         basicInfo: {
           ...INITIAL_STATE.basicInfo,
-          date: new Date().toISOString().split('T')[0]
+          date: new Date().toISOString().split('T')[0],
+          // Preserve these fields
+          reviewer: data.basicInfo.reviewer,
+          battalion: data.basicInfo.battalion,
+          unit: data.basicInfo.unit,
         },
         // Re-create interruption arrays to ensure clean state
         interruptionRecords: {
@@ -209,7 +213,7 @@ const App: React.FC = () => {
                 onClick={handleReset}
                 className="bg-white text-slate-600 border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center"
             >
-                <i className="fas fa-plus mr-1"></i> <span>新案件</span>
+                <i className="fas fa-plus mr-1"></i> <span className="inline">新案件</span>
             </button>
             <button 
                 onClick={() => setShowPreview(true)}

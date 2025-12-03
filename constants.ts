@@ -1,7 +1,19 @@
 
 
+
 // UNIT_OPTIONS removed as requested for manual input
 export const UNIT_OPTIONS = []; 
+
+export const BATTALION_OPTIONS = [
+  "第一大隊",
+  "第二大隊",
+  "第三大隊",
+  "第四大隊",
+  "第五大隊",
+  "第六大隊",
+  "第七大隊",
+  "特搜大隊"
+];
 
 export const PULSE_CHECK_OPTIONS = [
   "1. 有確認脈搏",
