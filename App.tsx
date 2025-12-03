@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { TimeCalibration } from './components/TimeCalibration';
 import { TimeRecording } from './components/TimeRecording';
@@ -90,7 +91,63 @@ const App: React.FC = () => {
   };
 
   const handleSubmitToGoogleSheet = () => {
-      // Just a stub for parent callback, logic handled in PreviewModal now
+      // Logic handled in PreviewModal
+  };
+
+  const handleReset = () => {
+    if (window.confirm("確定要建立新案件嗎？\n\n這將會清除目前所有已輸入的資料，且無法復原。")) {
+      // Reset to initial state, but ensure date is today
+      const freshState: AppState = {
+        ...INITIAL_STATE,
+        basicInfo: {
+          ...INITIAL_STATE.basicInfo,
+          date: new Date().toISOString().split('T')[0]
+        },
+        // Re-create interruption arrays to ensure clean state
+        interruptionRecords: {
+          beforePads: Array(5).fill(null).map((_, i) => ({ id: i.toString(), start: '', end: '', reason: '' })),
+          beforeMcpr: Array(10).fill(null).map((_, i) => ({ id: i.toString(), start: '', end: '', reason: '' })),
+        },
+        timeRecords: {
+            found: { emt1: '', emt2: '', emt3: '' },
+            contact: { emt1: '', emt2: '', emt3: '' },
+            ohcaJudgment: { emt1: '', emt2: '', emt3: '' },
+            cprStart: { emt1: '', emt2: '', emt3: '' },
+            powerOn: '',
+            padsOn: { emt1: '', emt2: '', emt3: '' },
+            firstVentilation: { emt1: '', emt2: '', emt3: '' },
+            mcprSetup: { emt1: '', emt2: '', emt3: '' },
+            firstMed: { emt1: '', emt2: '', emt3: '' },
+            airway: { emt1: '', emt2: '', emt3: '' },
+            aedOff: '',
+            rosc: { emt1: '', emt2: '', emt3: '' },
+            firstShock: '',
+        },
+        calibration: {
+            emt1: { keyTime: '', aedTime: '' },
+            emt2: { keyTime: '', aedTime: '' },
+            emt3: { keyTime: '', aedTime: '' },
+        },
+        technicalInfo: {
+            ...INITIAL_STATE.technicalInfo,
+            checkPulse: '',
+            useCompressor: '',
+            initialRhythm: '',
+            endoAttempts: 0,
+            airwayDevice: '',
+            etco2Used: '', // Reset to empty string (Please Select)
+            etco2Value: '',
+            ivOperator: '',
+            ioOperator: '',
+            endoOperator: '',
+            teamLeader: '',
+            aedPadCorrect: '',
+        }
+      };
+      setData(freshState);
+      setActiveTab(0);
+      window.scrollTo(0, 0);
+    }
   };
 
   // Extract crew members for dropdowns
@@ -121,9 +178,9 @@ const App: React.FC = () => {
       icon: 'fa-stethoscope', 
       component: <TechnicalSkills 
         info={data.technicalInfo} 
-        basicInfo={data.basicInfo} // Pass basicInfo
+        basicInfo={data.basicInfo} 
         onChange={updateTechnical} 
-        onBasicChange={updateBasic} // Pass basic update handler
+        onBasicChange={updateBasic}
         crewMembers={crewMembers} 
       /> 
     },
@@ -141,15 +198,23 @@ const App: React.FC = () => {
             />
             <div className="flex flex-col">
                 <h1 className="font-bold text-lg text-slate-900">新北 OHCA 品管系統</h1>
-                <span className="text-[10px] text-slate-400 font-mono">Ver.20251202</span>
+                <span className="text-[10px] text-slate-400 font-mono">Ver.20251203</span>
             </div>
         </div>
-        <button 
-            onClick={() => setShowPreview(true)}
-            className="bg-medical-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-medical-700 transition-colors shadow-medical-200 shadow-md flex items-center"
-        >
-            送出 <i className="fas fa-paper-plane ml-2"></i>
-        </button>
+        <div className="flex gap-2">
+            <button 
+                onClick={handleReset}
+                className="bg-white text-slate-600 border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center"
+            >
+                <i className="fas fa-plus mr-1"></i> <span className="hidden sm:inline">新案件</span>
+            </button>
+            <button 
+                onClick={() => setShowPreview(true)}
+                className="bg-medical-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-medical-700 transition-colors shadow-medical-200 shadow-md flex items-center"
+            >
+                送出 <i className="fas fa-paper-plane ml-2"></i>
+            </button>
+        </div>
       </header>
 
       {/* Main Content */}

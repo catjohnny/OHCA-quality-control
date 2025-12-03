@@ -1,8 +1,7 @@
 
 
-export const UNIT_OPTIONS = [
-  "新店", "安康", "安和", "直潭", "烏來", "深坑", "石碇", "坪林", "雪山"
-];
+// UNIT_OPTIONS removed as requested for manual input
+export const UNIT_OPTIONS = []; 
 
 export const PULSE_CHECK_OPTIONS = [
   "1. 有確認脈搏",
@@ -27,6 +26,8 @@ export const AIRWAY_OPTIONS = [
   "3. 影像式喉頭鏡",
   "4. 已有氣切道"
 ];
+
+export const ENDO_ATTEMPTS_OPTIONS = [0, 1, 2, 3, 4, 5];
 
 export const OHCA_TYPE_OPTIONS = [
   "內科-一般(含居室內、養護中心)",
@@ -75,6 +76,7 @@ export const TIME_FIELD_LABELS: Record<string, string> = {
   firstVentilation: '第一次給氣',
   mcprSetup: 'MCPR 架設',
   firstMed: '第一次給藥',
+  airway: '呼吸道建立時間',
   aedOff: 'AED 關機',
   rosc: 'ROSC 時間',
   firstShock: '首次電擊'

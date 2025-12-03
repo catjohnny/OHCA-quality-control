@@ -25,49 +25,61 @@ export const DateTimeInput: React.FC<Props> = ({ value, onChange, disabled, clas
     }
   }, [value]);
 
-  const emitChange = (d: string, t: string) => {
-    // If we have a time but no date, try to use defaultDate or today
-    let finalDate = d;
-    if (!finalDate) {
-      if (defaultDate) {
-        finalDate = defaultDate;
-      } else {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        finalDate = `${year}-${month}-${day}`;
-      }
-      setDateVal(finalDate); // Update UI immediately for better UX
-    }
-
-    // If we have a date but no time, default to 00:00:00
-    let finalTime = t;
-    if (!finalTime) {
-      finalTime = '00:00:00';
-    } else if (finalTime.length === 5) {
-      // If browser returns HH:mm, append seconds
-      finalTime = `${finalTime}:00`;
-    }
-
-    onChange(`${finalDate}T${finalTime}`);
+  const getTodayStr = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const d = e.target.value;
-    setDateVal(d);
-    // Only emit if we already have a time, or if we want to default time to 00:00:00
-    // To allow user to type date first without jumping state, we can wait for valid time?
-    // But requirement is to be snappy.
-    // If there is existing value, update it. If empty, wait for time? 
-    // Usually easier to update immediately with default time if empty.
-    emitChange(d, timeVal);
+    const newDate = e.target.value;
+    setDateVal(newDate);
+
+    // 1. If Date is cleared, clear the whole entry
+    if (!newDate) {
+      onChange('');
+      return;
+    }
+
+    // 2. If Date is entered but Time is empty, default Time to 00:00:00
+    // This creates a valid ISO string immediately
+    let finalTime = timeVal;
+    if (!finalTime) {
+      finalTime = '00:00:00';
+      setTimeVal(finalTime);
+    } else if (finalTime.length === 5) {
+       finalTime = `${finalTime}:00`;
+    }
+
+    onChange(`${newDate}T${finalTime}`);
   };
 
   const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const t = e.target.value;
-    setTimeVal(t);
-    emitChange(dateVal, t);
+    const newTime = e.target.value;
+    setTimeVal(newTime);
+
+    // 1. If Time is cleared, clear the whole entry (since partial timestamp is invalid for app)
+    if (!newTime) {
+      onChange('');
+      return;
+    }
+
+    // 2. If Time is entered but Date is empty, Auto-fill Date
+    let finalDate = dateVal;
+    if (!finalDate) {
+      finalDate = defaultDate || getTodayStr();
+      setDateVal(finalDate);
+    }
+
+    // Ensure seconds
+    let finalTimeStr = newTime;
+    if (finalTimeStr.length === 5) {
+      finalTimeStr = `${finalTimeStr}:00`;
+    }
+
+    onChange(`${finalDate}T${finalTimeStr}`);
   };
 
   // Extract relevant style classes to apply to children, handling width manually

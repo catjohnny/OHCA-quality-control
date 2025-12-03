@@ -20,6 +20,7 @@ export interface TimeRecord {
   firstVentilation: { emt1: string; emt2: string; emt3: string };
   mcprSetup: { emt1: string; emt2: string; emt3: string };
   firstMed: { emt1: string; emt2: string; emt3: string };
+  airway: { emt1: string; emt2: string; emt3: string }; // New field
   aedOff: string; // Direct AED time
   rosc: { emt1: string; emt2: string; emt3: string };
   firstShock: string; // Direct AED time
@@ -99,6 +100,7 @@ export const INITIAL_STATE: AppState = {
     firstVentilation: { emt1: '', emt2: '', emt3: '' },
     mcprSetup: { emt1: '', emt2: '', emt3: '' },
     firstMed: { emt1: '', emt2: '', emt3: '' },
+    airway: { emt1: '', emt2: '', emt3: '' },
     aedOff: '',
     rosc: { emt1: '', emt2: '', emt3: '' },
     firstShock: '',
@@ -124,7 +126,7 @@ export const INITIAL_STATE: AppState = {
     initialRhythm: '',
     endoAttempts: 0,
     airwayDevice: '',
-    etco2Used: 'N/A',
+    etco2Used: '',
     etco2Value: '',
     ivOperator: '',
     ioOperator: '',
