@@ -1,0 +1,5 @@
+{
+  "name": "OHCA Quality Control System",
+  "description": "A high-precision EMS quality control application for recording, calibrating, and analyzing OHCA mission timelines and data.",
+  "requestFramePermissions": []
+}
