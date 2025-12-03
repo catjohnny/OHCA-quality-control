@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { AppState, TimeRecord, InterruptionItem } from '../types';
 import { calculateCorrectedAedTime, formatTimeDisplay } from '../services/timeUtils';
@@ -46,6 +47,7 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
       vent: getT('firstVentilation'),
       mcpr: getT('mcprSetup'),
       med: getT('firstMed'),
+      airway: getT('airway'),
       aedOff: getT('aedOff'),
       aedOn: getT('powerOn'), 
       rosc: getT('rosc'),
@@ -69,36 +71,52 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
     return Math.floor(diff);
   };
 
-  // Base metrics (改用 getSafeDuration 以支援跨日)
+  // 檢查是否為 N/A 狀態 (取 EMT1 當代表，因為目前介面只有單一按鈕切換邏輯)
+  const isMcprNA = data.timeRecords.mcprSetup.emt1 === 'N/A';
+  const isVentNA = data.timeRecords.firstVentilation.emt1 === 'N/A';
+  const isAirwayNA = data.timeRecords.airway.emt1 === 'N/A';
+
+  // Base metrics
   const cprDelay = getSafeDuration(times.ohca, times.cpr);
   const padsDelay = getSafeDuration(times.ohca, times.pads);
-  const ventDelay = getSafeDuration(times.ohca, times.vent);
-  const bvmTime = getSafeDuration(times.ohca, times.vent); 
+  const ventDelay = isVentNA ? null : getSafeDuration(times.ohca, times.vent);
+  const bvmTime = isVentNA ? null : getSafeDuration(times.ohca, times.vent); 
   const medDelay = getSafeDuration(times.ohca, times.med);
+  const airwayTime = isAirwayNA ? null : getSafeDuration(times.ohca, times.airway);
 
   // New Metrics Calculations
-  // 1. 計算 OHCA -> Pads 的總時間 (含跨日修正)
+  // 1. 計算 OHCA -> Pads 的總時間
   const durationOhcaToPads = getSafeDuration(times.ohca, times.pads);
   const timeInCompPreAed = (durationOhcaToPads !== null) 
     ? durationOhcaToPads - interruptionPads 
     : null;
 
-  // 2. 計算 Pads -> MCPR 的總時間 (含跨日修正)
-  const durationPadsToMcpr = getSafeDuration(times.pads, times.mcpr);
+  // 2. 計算 Pads -> MCPR 的總時間
+  // 邏輯變更：如果 MCPR 為 N/A，則這段時間改為計算「Pads -> AED Off」
+  const durationPadsToMcpr = isMcprNA 
+     ? getSafeDuration(times.pads, times.aedOff) 
+     : getSafeDuration(times.pads, times.mcpr);
+
   const timeInCompPreMcpr = (durationPadsToMcpr !== null)
     ? durationPadsToMcpr - interruptionMcpr
     : null;
 
-  // 3. 計算 MCPR -> AED Off 的總時間 (含跨日修正)
-  const timeInCompPostMcpr = getSafeDuration(times.mcpr, times.aedOff);
+  // 3. 計算 MCPR -> AED Off 的總時間
+  // 邏輯變更：如果 MCPR 為 N/A，則此段時間不存在 (N/A)
+  const timeInCompPostMcpr = isMcprNA
+     ? null 
+     : getSafeDuration(times.mcpr, times.aedOff);
 
   // 計算徒手 CCF
   let manualCCF = 'N/A';
-  // 分母：OHCA 到 MCPR 架設的總時間 (含跨日修正)
-  const totalDurationManual = getSafeDuration(times.ohca, times.mcpr);
+  // 分母邏輯：正常為 OHCA->MCPR。若 MCPR 未執行，則為 OHCA -> AED Off
+  const totalDurationManual = isMcprNA
+     ? getSafeDuration(times.ohca, times.aedOff)
+     : getSafeDuration(times.ohca, times.mcpr);
 
+  // 分子：PreAED + PreMCPR
   if (timeInCompPreAed !== null && timeInCompPreMcpr !== null && totalDurationManual !== null) {
-    const totalComp = timeInCompPreAed + timeInCompPreMcpr; // 分子：總按壓時間
+    const totalComp = timeInCompPreAed + timeInCompPreMcpr; 
     if (totalDurationManual > 0) {
         manualCCF = ((totalComp / totalDurationManual) * 100).toFixed(1) + '%';
     }
@@ -106,17 +124,21 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
 
   // 計算整體 CCF
   let overallCCF = 'N/A';
-  // 分母：Pads On 到 AED Off 的總時間 (含跨日修正)
   const totalDurationOverall = getSafeDuration(times.pads, times.aedOff);
 
-  if (timeInCompPreMcpr !== null && timeInCompPostMcpr !== null && totalDurationOverall !== null) {
-    const totalComp = timeInCompPreMcpr + timeInCompPostMcpr;
-    if (totalDurationOverall > 0) {
+  if (totalDurationOverall !== null && timeInCompPreMcpr !== null) {
+      let totalComp = timeInCompPreMcpr;
+      if (timeInCompPostMcpr !== null) {
+          totalComp += timeInCompPostMcpr;
+      }
+      
+      if (totalDurationOverall > 0) {
         overallCCF = ((totalComp / totalDurationOverall) * 100).toFixed(1) + '%';
-    }
+      }
   }
 
-  const formatDiff = (seconds: number | null) => {
+  const formatDiff = (seconds: number | null, isNA: boolean = false, naText: string = 'N/A') => {
+    if (isNA) return naText;
     if (seconds === null) return 'N/A';
     const absS = Math.abs(seconds);
     const m = Math.floor(absS / 60);
@@ -131,12 +153,16 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
     ? Math.abs(times.rosc.getTime() - times.aedOff.getTime()) > 1000
     : false;
   
-  // 檢查是否有負值 (小於 0 且大於 -12小時 的會被保留為負值，視為順序錯誤)
-  const hasNegativeValues = [cprDelay, padsDelay, ventDelay, medDelay, timeInCompPreAed, timeInCompPreMcpr, timeInCompPostMcpr]
+  const hasNegativeValues = [cprDelay, padsDelay, ventDelay, medDelay, airwayTime, timeInCompPreAed, timeInCompPreMcpr, timeInCompPostMcpr]
     .some(v => v !== null && v < 0);
 
   const missingFields = REQUIRED_TIME_FIELDS.filter(k => {
       const key = k as keyof TimeRecord;
+      // Skip required check if field is N/A
+      if (key === 'mcprSetup' && isMcprNA) return false;
+      if (key === 'firstVentilation' && isVentNA) return false;
+      if (key === 'airway' && isAirwayNA) return false;
+
       const raw = data.timeRecords[key];
       return !calculateCorrectedAedTime(key, raw, data.calibration);
   });
@@ -184,9 +210,10 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
         t_ohca: fmtT(times.ohca),
         t_cpr: fmtT(times.cpr),
         t_pads: fmtT(times.pads),
-        t_vent: fmtT(times.vent),
-        t_mcpr: fmtT(times.mcpr),
+        t_vent: isVentNA ? 'N/A' : fmtT(times.vent),
+        t_mcpr: isMcprNA ? 'N/A' : fmtT(times.mcpr),
         t_med: fmtT(times.med),
+        t_airway: isAirwayNA ? 'N/A' : fmtT(times.airway),
         t_off: fmtT(times.aedOff),
         t_rosc: fmtT(times.rosc),
         
@@ -200,14 +227,10 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
     };
 
     try {
-        // Use no-cors mode for simple submission to GAS Web App
-        // NOTE: In no-cors mode, we cannot read the response, so we assume success if no network error.
         await fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors', 
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
         });
 
@@ -235,8 +258,8 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
 ⏱️ 時間指標：
 判斷OHCA ⮕ CPR開始：${formatDiff(cprDelay)}
 判斷OHCA ⮕ 貼片貼上：${formatDiff(padsDelay)}
-判斷OHCA ⮕ 第一次給氣：${formatDiff(ventDelay)}
-第一次BVM所需時間：${formatDiff(bvmTime)}
+第一次BVM所需時間：${formatDiff(bvmTime, isVentNA, '未執行BVM')}
+建立呼吸道時間：${formatDiff(airwayTime, isAirwayNA, '未建立輔助呼吸道')}
 給藥速率：${formatDiff(medDelay)}
 
 ⚠️ CPR 中斷：
@@ -309,8 +332,8 @@ ${data.basicInfo.memo || '無'}
           <div className="space-y-3">
              <ResultRow label="判斷OHCA ⮕ CPR開始" value={formatDiff(cprDelay)} isNegative={cprDelay !== null && cprDelay < 0} />
              <ResultRow label="判斷OHCA ⮕ 貼片" value={formatDiff(padsDelay)} isNegative={padsDelay !== null && padsDelay < 0} />
-             <ResultRow label="判斷OHCA ⮕ 第一次給氣" value={formatDiff(ventDelay)} isNegative={ventDelay !== null && ventDelay < 0} />
-             <ResultRow label="第一次BVM所需時間" value={formatDiff(bvmTime)} isNegative={bvmTime !== null && bvmTime < 0} />
+             <ResultRow label="第一次BVM所需時間" value={formatDiff(bvmTime, isVentNA, '未執行BVM')} isNegative={bvmTime !== null && bvmTime < 0} />
+             <ResultRow label="建立呼吸道時間" value={formatDiff(airwayTime, isAirwayNA, '未建立輔助呼吸道')} isNegative={airwayTime !== null && airwayTime < 0} />
              <ResultRow label="給藥速率" value={formatDiff(medDelay)} isNegative={medDelay !== null && medDelay < 0} />
              
              <div className="border-t border-slate-100 my-4"></div>
@@ -319,7 +342,7 @@ ${data.basicInfo.memo || '無'}
              <ResultRow label="MCPR前中斷" value={`${interruptionMcpr} 秒`} />
              <ResultRow label="Time in Comp (AED前)" value={`${timeInCompPreAed?.toFixed(0) ?? 'N/A'} 秒`} isNegative={timeInCompPreAed !== null && timeInCompPreAed < 0} />
              <ResultRow label="Time in Comp (MCPR前)" value={`${timeInCompPreMcpr?.toFixed(0) ?? 'N/A'} 秒`} isNegative={timeInCompPreMcpr !== null && timeInCompPreMcpr < 0} />
-             <ResultRow label="Time in Comp (MCPR後)" value={`${timeInCompPostMcpr?.toFixed(0) ?? 'N/A'} 秒`} isNegative={timeInCompPostMcpr !== null && timeInCompPostMcpr < 0} />
+             <ResultRow label="Time in Comp (MCPR後)" value={isMcprNA ? 'N/A (未架設MCPR)' : `${timeInCompPostMcpr?.toFixed(0) ?? 'N/A'} 秒`} isNegative={timeInCompPostMcpr !== null && timeInCompPostMcpr < 0} />
 
              <div className="border-t border-slate-100 my-4"></div>
              
