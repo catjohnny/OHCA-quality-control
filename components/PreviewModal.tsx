@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import { AppState, TimeRecord, InterruptionItem } from '../types';
 import { calculateCorrectedAedTime, formatTimeDisplay } from '../services/timeUtils';
@@ -382,19 +381,26 @@ ${data.basicInfo.memo || '無'}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white w-full max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl max-h-[90vh] overflow-y-auto flex flex-col">
+      {/* 
+         Revised Modal Container: Flex Column with independent scrolling body.
+         max-h-[90vh] ensures it doesn't overflow screen.
+         flex-col + overflow-hidden on parent contains the layout.
+      */}
+      <div className="bg-white w-full max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
         
-        <div className="sticky top-0 bg-white border-b border-slate-100 p-4 flex justify-between items-center z-10">
-            <h2 className="text-lg font-bold text-slate-800">
+        {/* Header: Fixed at top (static flex item) */}
+        <div className="bg-white border-b border-slate-100 p-4 flex justify-between items-center shrink-0 z-10">
+            <h2 className="text-lg font-bold text-slate-800 flex items-center">
                 <i className="fas fa-clipboard-check text-medical-600 mr-2"></i>
                 品管成果預覽
             </h2>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors p-2 -mr-2">
                 <i className="fas fa-times text-xl"></i>
             </button>
         </div>
 
-        <div className="p-6 space-y-2">
+        {/* Body: Scrollable area */}
+        <div className="p-6 space-y-2 overflow-y-auto flex-1 scroll-smooth">
             
             {/* Missing Fields Warning */}
             {!isValid && (
@@ -454,7 +460,8 @@ ${data.basicInfo.memo || '無'}`;
             )}
         </div>
 
-        <div className="sticky bottom-0 bg-white border-t border-slate-100 p-4 flex gap-3">
+        {/* Footer: Fixed at bottom (static flex item) */}
+        <div className="bg-white border-t border-slate-100 p-4 flex gap-3 shrink-0 z-10">
             <button 
                 onClick={onClose}
                 disabled={isSubmitting}
