@@ -63,7 +63,7 @@ export const TimeCalibration: React.FC<Props> = ({ calibration, onChange, defaul
     <div className="space-y-2 animate-fadeIn">
       <div className="bg-blue-50 p-4 rounded-lg mb-4 text-sm text-blue-800 border border-blue-100">
         <i className="fas fa-info-circle mr-2"></i>
-        請輸入各人員手錶上的「關鍵時間點」與對應的「AED時間」以進行校正。填寫任一欄位會自動帶入案件日期。
+        請輸入各人員密錄器上的「關鍵時間點」與對應的「AED時間」以進行校正。填寫任一欄位會自動帶入案件日期。
       </div>
       {renderRow('EMT 1 人員', 'emt1')}
       {renderRow('EMT 2 人員', 'emt2')}
