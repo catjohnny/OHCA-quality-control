@@ -1,11 +1,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { AppState, TimeRecord, InterruptionItem } from '../types';
-import { calculateCorrectedAedTime, formatTimeDisplay } from '../services/timeUtils';
+import { calculateCorrectedAedTime } from '../services/timeUtils';
 import { REQUIRED_TIME_FIELDS, TIME_FIELD_LABELS } from '../constants';
-
-// ★★★ 已更新您的 Google Apps Script 網址 ★★★
-const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbyZ3zWuYygcqT-T7DdKXLHGYMeNfVf3T6G41IaWpdi6a_VfUCzayJtiWlOa7GvkBQwl5Q/exec"; 
 
 interface Props {
   data: AppState;
@@ -16,7 +13,6 @@ interface Props {
 export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
 
   // Helper for 4-digit MMSS time calc
   const calculateMMSSSeconds = (mmss: string) => {
@@ -47,7 +43,6 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
       vent: getT('firstVentilation'),
       mcpr: getT('mcprSetup'),
       med: getT('firstMed'),
-      airway: getT('airway'),
       aedOff: getT('aedOff'),
       aedOn: getT('powerOn'), 
       rosc: getT('rosc'),
@@ -57,88 +52,50 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
   const interruptionPads = calculateInterruption(data.interruptionRecords.beforePads);
   const interruptionMcpr = calculateInterruption(data.interruptionRecords.beforeMcpr);
 
-  // 智慧型時間差計算：處理跨日問題
-  const getSafeDuration = (start: Date | null, end: Date | null): number | null => {
-    if (!start || !end) return null;
-    let diff = (end.getTime() - start.getTime()) / 1000;
-    
-    // 若時間差小於 -12 小時 (-43200秒)，極大機率為跨日案件但未調整日期 (例如 23:59 -> 00:01)
-    // 此時自動補正 +24 小時 (+86400秒)
-    if (diff < -43200) {
-        diff += 86400;
-    }
-    
-    return Math.floor(diff);
+  const diffSeconds = (d1: Date | null, d2: Date | null) => {
+    if (!d1 || !d2) return null;
+    return Math.floor((d1.getTime() - d2.getTime()) / 1000);
   };
 
-  // 檢查是否為 N/A 狀態 (取 EMT1 當代表，因為目前介面只有單一按鈕切換邏輯)
-  const isMcprNA = data.timeRecords.mcprSetup.emt1 === 'N/A';
-  const isVentNA = data.timeRecords.firstVentilation.emt1 === 'N/A';
-  const isAirwayNA = data.timeRecords.airway.emt1 === 'N/A';
-
   // Base metrics
-  const cprDelay = getSafeDuration(times.ohca, times.cpr);
-  const padsDelay = getSafeDuration(times.ohca, times.pads);
-  const ventDelay = isVentNA ? null : getSafeDuration(times.ohca, times.vent);
-  const bvmTime = isVentNA ? null : getSafeDuration(times.ohca, times.vent); 
-  const medDelay = getSafeDuration(times.ohca, times.med);
-  const airwayTime = isAirwayNA ? null : getSafeDuration(times.ohca, times.airway);
+  const cprDelay = diffSeconds(times.cpr, times.ohca);
+  const padsDelay = diffSeconds(times.pads, times.ohca);
+  const ventDelay = diffSeconds(times.vent, times.ohca);
+  const bvmTime = diffSeconds(times.vent, times.ohca); // Defined as same in prompt
+  const medDelay = diffSeconds(times.med, times.ohca);
 
   // New Metrics Calculations
-  // 1. 計算 OHCA -> Pads 的總時間
-  const durationOhcaToPads = getSafeDuration(times.ohca, times.pads);
-  const timeInCompPreAed = (durationOhcaToPads !== null) 
-    ? durationOhcaToPads - interruptionPads 
+  const timeInCompPreAed = (times.pads && times.ohca) 
+    ? (times.pads.getTime() - times.ohca.getTime()) / 1000 - interruptionPads 
     : null;
 
-  // 2. 計算 Pads -> MCPR 的總時間
-  // 邏輯變更：如果 MCPR 為 N/A，則這段時間改為計算「Pads -> AED Off」
-  const durationPadsToMcpr = isMcprNA 
-     ? getSafeDuration(times.pads, times.aedOff) 
-     : getSafeDuration(times.pads, times.mcpr);
-
-  const timeInCompPreMcpr = (durationPadsToMcpr !== null)
-    ? durationPadsToMcpr - interruptionMcpr
+  const timeInCompPreMcpr = (times.mcpr && times.pads)
+    ? (times.mcpr.getTime() - times.pads.getTime()) / 1000 - interruptionMcpr
     : null;
 
-  // 3. 計算 MCPR -> AED Off 的總時間
-  // 邏輯變更：如果 MCPR 為 N/A，則此段時間不存在 (N/A)
-  const timeInCompPostMcpr = isMcprNA
-     ? null 
-     : getSafeDuration(times.mcpr, times.aedOff);
+  const timeInCompPostMcpr = (times.aedOff && times.mcpr)
+    ? (times.aedOff.getTime() - times.mcpr.getTime()) / 1000
+    : null;
 
-  // 計算徒手 CCF
   let manualCCF = 'N/A';
-  // 分母邏輯：正常為 OHCA->MCPR。若 MCPR 未執行，則為 OHCA -> AED Off
-  const totalDurationManual = isMcprNA
-     ? getSafeDuration(times.ohca, times.aedOff)
-     : getSafeDuration(times.ohca, times.mcpr);
-
-  // 分子：PreAED + PreMCPR
-  if (timeInCompPreAed !== null && timeInCompPreMcpr !== null && totalDurationManual !== null) {
-    const totalComp = timeInCompPreAed + timeInCompPreMcpr; 
-    if (totalDurationManual > 0) {
-        manualCCF = ((totalComp / totalDurationManual) * 100).toFixed(1) + '%';
+  if (timeInCompPreAed !== null && timeInCompPreMcpr !== null && times.mcpr && times.ohca) {
+    const totalComp = timeInCompPreAed + timeInCompPreMcpr;
+    const totalDuration = (times.mcpr.getTime() - times.ohca.getTime()) / 1000;
+    if (totalDuration > 0) {
+        manualCCF = ((totalComp / totalDuration) * 100).toFixed(1) + '%';
     }
   }
 
-  // 計算整體 CCF
   let overallCCF = 'N/A';
-  const totalDurationOverall = getSafeDuration(times.pads, times.aedOff);
-
-  if (totalDurationOverall !== null && timeInCompPreMcpr !== null) {
-      let totalComp = timeInCompPreMcpr;
-      if (timeInCompPostMcpr !== null) {
-          totalComp += timeInCompPostMcpr;
-      }
-      
-      if (totalDurationOverall > 0) {
-        overallCCF = ((totalComp / totalDurationOverall) * 100).toFixed(1) + '%';
-      }
+  if (timeInCompPreMcpr !== null && timeInCompPostMcpr !== null && times.aedOff && times.pads) {
+    const totalComp = timeInCompPreMcpr + timeInCompPostMcpr;
+    const totalDuration = (times.aedOff.getTime() - times.pads.getTime()) / 1000;
+    if (totalDuration > 0) {
+        overallCCF = ((totalComp / totalDuration) * 100).toFixed(1) + '%';
+    }
   }
 
-  const formatDiff = (seconds: number | null, isNA: boolean = false, naText: string = 'N/A') => {
-    if (isNA) return naText;
+  const formatDiff = (seconds: number | null) => {
     if (seconds === null) return 'N/A';
     const absS = Math.abs(seconds);
     const m = Math.floor(absS / 60);
@@ -153,16 +110,11 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
     ? Math.abs(times.rosc.getTime() - times.aedOff.getTime()) > 1000
     : false;
   
-  const hasNegativeValues = [cprDelay, padsDelay, ventDelay, medDelay, airwayTime, timeInCompPreAed, timeInCompPreMcpr, timeInCompPostMcpr]
+  const hasNegativeValues = [cprDelay, padsDelay, ventDelay, medDelay, timeInCompPreAed, timeInCompPreMcpr, timeInCompPostMcpr]
     .some(v => v !== null && v < 0);
 
   const missingFields = REQUIRED_TIME_FIELDS.filter(k => {
       const key = k as keyof TimeRecord;
-      // Skip required check if field is N/A
-      if (key === 'mcprSetup' && isMcprNA) return false;
-      if (key === 'firstVentilation' && isVentNA) return false;
-      if (key === 'airway' && isAirwayNA) return false;
-
       const raw = data.timeRecords[key];
       return !calculateCorrectedAedTime(key, raw, data.calibration);
   });
@@ -170,79 +122,16 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
   const missingFieldNames = missingFields.map(k => TIME_FIELD_LABELS[k] || k).join('、');
   const canSubmit = !roscMismatch && !hasNegativeValues && missingFields.length === 0;
 
-  const handleConfirm = async () => {
-    if (GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_SCRIPT_URL_HERE" || !GOOGLE_SCRIPT_URL) {
-        alert("尚未設定 Google Script 網址，請聯繫管理員更新程式碼。");
-        return;
-    }
-
+  const handleConfirm = () => {
     setIsSubmitting(true);
-    setErrorMessage('');
-
-    // Prepare Payload
-    const crew = [data.basicInfo.member1, data.basicInfo.member2, data.basicInfo.member3, data.basicInfo.member4, data.basicInfo.member5, data.basicInfo.member6]
-        .filter(Boolean).join('、');
-    
-    // Format times for sheet (HH:mm:ss)
-    const fmtT = (d: Date | null) => d ? formatTimeDisplay(d.toISOString()) : '';
-
-    const payload = {
-        date: data.basicInfo.date,
-        caseId: data.basicInfo.caseId,
-        unit: data.basicInfo.unit,
-        reviewer: data.basicInfo.reviewer,
-        crew: crew,
-        ohcaType: data.basicInfo.ohcaType,
-        notification: data.basicInfo.notificationTime,
-        rhythm: data.technicalInfo.initialRhythm,
-        compressor: data.technicalInfo.useCompressor,
-        endoAttempts: data.technicalInfo.endoAttempts,
-        airway: data.technicalInfo.airwayDevice,
-        etco2: data.technicalInfo.etco2Used === 'Yes' ? data.technicalInfo.etco2Value : data.technicalInfo.etco2Used,
-        pulse: data.technicalInfo.checkPulse,
-        padsCorrect: data.technicalInfo.aedPadCorrect,
-        ivOp: data.technicalInfo.ivOperator,
-        ioOp: data.technicalInfo.ioOperator,
-        endoOp: data.technicalInfo.endoOperator,
-        leader: data.technicalInfo.teamLeader,
-        
-        // Times
-        t_ohca: fmtT(times.ohca),
-        t_cpr: fmtT(times.cpr),
-        t_pads: fmtT(times.pads),
-        t_vent: isVentNA ? 'N/A' : fmtT(times.vent),
-        t_mcpr: isMcprNA ? 'N/A' : fmtT(times.mcpr),
-        t_med: fmtT(times.med),
-        t_airway: isAirwayNA ? 'N/A' : fmtT(times.airway),
-        t_off: fmtT(times.aedOff),
-        t_rosc: fmtT(times.rosc),
-        
-        // Metrics
-        int_pads: interruptionPads,
-        int_mcpr: interruptionMcpr,
-        ccf_manual: manualCCF,
-        ccf_overall: overallCCF,
-        
-        memo: data.basicInfo.memo
-    };
-
-    try {
-        await fetch(GOOGLE_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors', 
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
-
+    // Simulate upload to Google Sheet
+    setTimeout(() => {
+        // Open the google sheet URL (or simulate it)
+        window.open('https://docs.google.com/spreadsheets/d/1DxjxcX5eklxkuXsQwRphw1z_eT8AOgD9OJavBCpjfcM/edit?gid=0#gid=0', '_blank');
         setIsSubmitting(false);
         setIsSuccess(true);
-        if (onSubmit) onSubmit();
-
-    } catch (error) {
-        console.error("Submission Error:", error);
-        setErrorMessage("連線失敗，請檢查網路或稍後再試。");
-        setIsSubmitting(false);
-    }
+        // onSubmit(); // Call parent submit which might reset data if needed
+    }, 1500);
   };
 
   const getCopyText = () => {
@@ -258,8 +147,8 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
 ⏱️ 時間指標：
 判斷OHCA ⮕ CPR開始：${formatDiff(cprDelay)}
 判斷OHCA ⮕ 貼片貼上：${formatDiff(padsDelay)}
-第一次BVM所需時間：${formatDiff(bvmTime, isVentNA, '未執行BVM')}
-建立呼吸道時間：${formatDiff(airwayTime, isAirwayNA, '未建立輔助呼吸道')}
+判斷OHCA ⮕ 第一次給氣：${formatDiff(ventDelay)}
+第一次BVM所需時間：${formatDiff(bvmTime)}
 給藥速率：${formatDiff(medDelay)}
 
 ⚠️ CPR 中斷：
@@ -332,8 +221,8 @@ ${data.basicInfo.memo || '無'}
           <div className="space-y-3">
              <ResultRow label="判斷OHCA ⮕ CPR開始" value={formatDiff(cprDelay)} isNegative={cprDelay !== null && cprDelay < 0} />
              <ResultRow label="判斷OHCA ⮕ 貼片" value={formatDiff(padsDelay)} isNegative={padsDelay !== null && padsDelay < 0} />
-             <ResultRow label="第一次BVM所需時間" value={formatDiff(bvmTime, isVentNA, '未執行BVM')} isNegative={bvmTime !== null && bvmTime < 0} />
-             <ResultRow label="建立呼吸道時間" value={formatDiff(airwayTime, isAirwayNA, '未建立輔助呼吸道')} isNegative={airwayTime !== null && airwayTime < 0} />
+             <ResultRow label="判斷OHCA ⮕ 第一次給氣" value={formatDiff(ventDelay)} isNegative={ventDelay !== null && ventDelay < 0} />
+             <ResultRow label="第一次BVM所需時間" value={formatDiff(bvmTime)} isNegative={bvmTime !== null && bvmTime < 0} />
              <ResultRow label="給藥速率" value={formatDiff(medDelay)} isNegative={medDelay !== null && medDelay < 0} />
              
              <div className="border-t border-slate-100 my-4"></div>
@@ -342,7 +231,7 @@ ${data.basicInfo.memo || '無'}
              <ResultRow label="MCPR前中斷" value={`${interruptionMcpr} 秒`} />
              <ResultRow label="Time in Comp (AED前)" value={`${timeInCompPreAed?.toFixed(0) ?? 'N/A'} 秒`} isNegative={timeInCompPreAed !== null && timeInCompPreAed < 0} />
              <ResultRow label="Time in Comp (MCPR前)" value={`${timeInCompPreMcpr?.toFixed(0) ?? 'N/A'} 秒`} isNegative={timeInCompPreMcpr !== null && timeInCompPreMcpr < 0} />
-             <ResultRow label="Time in Comp (MCPR後)" value={isMcprNA ? 'N/A (未架設MCPR)' : `${timeInCompPostMcpr?.toFixed(0) ?? 'N/A'} 秒`} isNegative={timeInCompPostMcpr !== null && timeInCompPostMcpr < 0} />
+             <ResultRow label="Time in Comp (MCPR後)" value={`${timeInCompPostMcpr?.toFixed(0) ?? 'N/A'} 秒`} isNegative={timeInCompPostMcpr !== null && timeInCompPostMcpr < 0} />
 
              <div className="border-t border-slate-100 my-4"></div>
              
@@ -360,7 +249,7 @@ ${data.basicInfo.memo || '無'}
             {hasNegativeValues && (
                 <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">
                     <i className="fas fa-exclamation-circle mr-2"></i>
-                    偵測到負值時間差，請檢查輸入時間順序。
+                    偵測到負值時間差，請檢查輸入時間。
                 </div>
             )}
             {missingFields.length > 0 && (
@@ -368,12 +257,6 @@ ${data.basicInfo.memo || '無'}
                     <i className="fas fa-exclamation-circle mr-2"></i>
                     <strong>請填寫以下必填欄位：</strong><br/>
                     {missingFieldNames}
-                </div>
-            )}
-            {errorMessage && (
-                 <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">
-                    <i className="fas fa-exclamation-circle mr-2"></i>
-                    {errorMessage}
                 </div>
             )}
           </div>
@@ -397,7 +280,7 @@ ${data.basicInfo.memo || '無'}
           >
             {isSubmitting ? (
                 <>
-                <i className="fas fa-spinner fa-spin mr-2"></i> 資料上傳中...
+                <i className="fas fa-spinner fa-spin mr-2"></i> 處理中...
                 </>
             ) : (
                 '確認無誤送出'

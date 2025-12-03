@@ -2,7 +2,7 @@
 import React from 'react';
 import { BasicInfo as BasicInfoType } from '../types';
 import { InputGroup } from './InputGroup';
-import { OHCA_TYPE_OPTIONS, NOTIFICATION_TIME_OPTIONS } from '../constants';
+import { UNIT_OPTIONS, OHCA_TYPE_OPTIONS, NOTIFICATION_TIME_OPTIONS } from '../constants';
 
 interface Props {
   info: BasicInfoType;
@@ -13,13 +13,6 @@ export const BasicInfo: React.FC<Props> = ({ info, onChange }) => {
   const handleCaseIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange('caseId', e.target.value);
   };
-  
-  const handleUnitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange('unit', e.target.value);
-  };
-
-  // Validation regex for unit: 1-3 Chinese characters
-  const isUnitValid = !info.unit || /^[\u4e00-\u9fa5]{1,3}$/.test(info.unit);
 
   return (
     <div className="space-y-4 animate-fadeIn">
@@ -34,13 +27,12 @@ export const BasicInfo: React.FC<Props> = ({ info, onChange }) => {
             required
           />
           <InputGroup
-            label="分隊 (限3個中文字以內)"
-            type="text"
-            placeholder="例如：新店、永和中"
+            label="分隊"
+            as="select"
+            options={UNIT_OPTIONS}
             value={info.unit}
-            onChange={handleUnitChange}
+            onChange={(e) => onChange('unit', e.target.value)}
             required
-            error={!isUnitValid ? "請輸入1至3個中文字" : undefined}
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

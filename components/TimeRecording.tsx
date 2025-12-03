@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { AppState, TimeRecord } from '../types';
 import { calculateCorrectedAedTime, formatTimeDisplay } from '../services/timeUtils';
@@ -20,11 +19,6 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
     onChange(category, subField, newValue);
   };
 
-  const handleToggleNA = (category: keyof TimeRecord, subField: string | null, currentValue: string) => {
-      const isNA = currentValue === 'N/A';
-      handleTimeChange(category, subField, isNA ? '' : 'N/A');
-  };
-
   const isEmtEnabled = (emt: string) => {
     if (emt === 'emt1') return true; 
     const cal = data.calibration[emt as 'emt1'|'emt2'|'emt3'];
@@ -44,7 +38,7 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
     specificValue: string, 
     subField: string | null 
   ): boolean => {
-    if (!specificValue || specificValue === 'N/A') return false;
+    if (!specificValue) return false;
 
     let currentCorrected: Date | null = null;
     
@@ -93,13 +87,7 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
         case 'firstVentilation': return !isAfter('ohcaJudgment');
         case 'mcprSetup': return !isAfter('cprStart');
         case 'firstMed': return !isAfter('ohcaJudgment');
-        case 'airway': return !isAfter('ohcaJudgment'); // Airway after OHCA
-        case 'aedOff': 
-            // If MCPR is NA, check against padsOn or CPR start? default mcprSetup check returns true if null.
-            // Safe to check against padsOn if mcpr missing? 
-            // Let's keep simple dependency: if Mcpr exists, check mcpr, else check pads
-            if (t.mcprSetup) return !isAfter('mcprSetup');
-            return !isAfter('padsOn');
+        case 'aedOff': return !isAfter('mcprSetup');
         case 'rosc': return !isEqual('aedOff');
         case 'firstShock': 
             return !(isAfter('padsOn') && isBefore('aedOff'));
@@ -118,18 +106,13 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
         return `w-full text-xs p-1 h-10 border rounded outline-none text-center transition-colors bg-pink-100 border-red-300 text-red-600 font-bold focus:ring-1 focus:ring-red-200`;
     }
 
-    if (val === 'N/A') {
-        return `w-full text-xs p-1 h-10 border rounded outline-none text-center transition-colors bg-slate-100 text-slate-500 font-mono tracking-wider`;
-    }
-
     return `w-full text-xs p-1 h-10 border rounded focus:ring-1 focus:ring-medical-500 outline-none text-center transition-colors
       ${hasValue ? 'bg-white border-medical-200' : 'bg-slate-50 border-slate-200'}`;
   };
 
   const renderRow = (
     fieldKey: keyof TimeRecord, 
-    isDirectAed: boolean = false,
-    allowNA: boolean = false
+    isDirectAed: boolean = false
   ) => {
     const recordData = data.timeRecords[fieldKey];
     const correctedTime = calculateCorrectedAedTime(fieldKey, recordData, data.calibration);
@@ -141,7 +124,7 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4">
         <div className="bg-slate-50 p-3 border-b border-slate-100 flex justify-between items-center">
           <span className="font-bold text-slate-800 text-sm">
-            {label} {isNoCalibration && <span className="text-xs font-normal text-slate-400">(免校正)</span>} {isRequired && !allowNA && <span className="text-red-500">*</span>}
+            {label} {isNoCalibration && <span className="text-xs font-normal text-slate-400">(免校正)</span>} {isRequired && <span className="text-red-500">*</span>}
           </span>
           <div className="flex items-center space-x-2">
              <span className="text-[10px] text-slate-500 uppercase">校正後 AED</span>
@@ -169,40 +152,20 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
                 const disabled = !isEmtEnabled(emt);
                 const val = (recordData as any)[emt];
                 const isError = !disabled && getValidationError(fieldKey, val, emt);
-                const isNA = val === 'N/A';
                 
                 return (
                   <div key={emt} className="flex items-center gap-2">
                      <label className={`w-10 text-[10px] uppercase text-right font-bold ${disabled ? 'text-slate-300' : 'text-slate-500'}`}>
                         {emt.toUpperCase()}
                      </label>
-                     <div className="flex-1 flex gap-1">
-                        {isNA ? (
-                           <div className="w-full text-xs p-1 h-10 border border-slate-200 rounded bg-slate-100 text-slate-500 flex items-center justify-center font-bold">
-                               未執行 / 不適用
-                           </div>
-                        ) : (
-                            <DateTimeInput
-                            value={val}
-                            onChange={(newVal) => handleTimeChange(fieldKey, emt, newVal)}
-                            disabled={disabled}
-                            className={getStyle(val, disabled, isError)}
-                            defaultDate={data.basicInfo.date}
-                            />
-                        )}
-                        
-                        {allowNA && !disabled && (
-                            <button 
-                                onClick={() => handleToggleNA(fieldKey, emt, val)}
-                                className={`px-2 rounded border text-[10px] font-bold transition-colors w-14 shrink-0
-                                    ${isNA 
-                                        ? 'bg-red-500 text-white border-red-600 hover:bg-red-600' 
-                                        : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-100'
-                                    }`}
-                            >
-                                {isNA ? '取消' : 'N/a'}
-                            </button>
-                        )}
+                     <div className="flex-1">
+                        <DateTimeInput
+                          value={val}
+                          onChange={(newVal) => handleTimeChange(fieldKey, emt, newVal)}
+                          disabled={disabled}
+                          className={getStyle(val, disabled, isError)}
+                          defaultDate={data.basicInfo.date}
+                        />
                      </div>
                   </div>
                 );
@@ -226,10 +189,9 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
       {renderRow('cprStart')}
       {renderRow('powerOn', true)}
       {renderRow('padsOn')}
-      {renderRow('firstVentilation', false, true)} {/* Allow NA */}
-      {renderRow('mcprSetup', false, true)} {/* Allow NA */}
+      {renderRow('firstVentilation')}
+      {renderRow('mcprSetup')}
       {renderRow('firstMed')}
-      {renderRow('airway', false, true)} {/* New field, allow NA */}
       {renderRow('aedOff', true)}
       {renderRow('rosc')}
       {renderRow('firstShock', true)}

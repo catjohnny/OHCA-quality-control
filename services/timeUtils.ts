@@ -7,7 +7,7 @@ export const getOffsetMs = (keyTime: string, aedTime: string): number => {
 };
 
 export const formatTimeDisplay = (dateStr: string): string => {
-  if (!dateStr || dateStr === 'N/A') return '--:--:--';
+  if (!dateStr) return '--:--:--';
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return '--:--:--';
   return d.toTimeString().split(' ')[0];
@@ -44,21 +44,13 @@ export const calculateCorrectedAedTime = (
 ): Date | null => {
   // Direct AED time fields
   if (typeof recordData === 'string') {
-    if (recordData === 'N/A') return null; // Handle N/A
     return recordData ? new Date(recordData) : null;
   }
 
   // Fields with EMT1/2/3
-  const emt1 = recordData.emt1;
-  const emt2 = recordData.emt2;
-  const emt3 = recordData.emt3;
-
-  // Handle N/A in EMT fields
-  if (emt1 === 'N/A' || emt2 === 'N/A' || emt3 === 'N/A') return null;
-
-  const emt1Time = emt1 ? new Date(emt1).getTime() : null;
-  const emt2Time = emt2 ? new Date(emt2).getTime() : null;
-  const emt3Time = emt3 ? new Date(emt3).getTime() : null;
+  const emt1Time = recordData.emt1 ? new Date(recordData.emt1).getTime() : null;
+  const emt2Time = recordData.emt2 ? new Date(recordData.emt2).getTime() : null;
+  const emt3Time = recordData.emt3 ? new Date(recordData.emt3).getTime() : null;
 
   const offset1 = getOffsetMs(calibration.emt1.keyTime, calibration.emt1.aedTime);
   const offset2 = getOffsetMs(calibration.emt2.keyTime, calibration.emt2.aedTime);

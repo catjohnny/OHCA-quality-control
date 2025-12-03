@@ -2,7 +2,7 @@
 import React from 'react';
 import { TechnicalInfo, BasicInfo } from '../types';
 import { InputGroup } from './InputGroup';
-import { PULSE_CHECK_OPTIONS, RHYTHM_OPTIONS, AIRWAY_OPTIONS, ENDO_ATTEMPTS_OPTIONS } from '../constants';
+import { PULSE_CHECK_OPTIONS, RHYTHM_OPTIONS, AIRWAY_OPTIONS } from '../constants';
 
 interface Props {
   info: TechnicalInfo;
@@ -68,40 +68,26 @@ export const TechnicalSkills: React.FC<Props> = ({ info, basicInfo, onChange, on
                 required
             />
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="mb-4 w-full">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                        插管嘗試次數 <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                        value={info.endoAttempts}
-                        onChange={(e) => onChange('endoAttempts', parseInt(e.target.value))}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-medical-500 transition-colors bg-white text-slate-800"
-                    >
-                        {ENDO_ATTEMPTS_OPTIONS.map((opt) => (
-                            <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                    </select>
-                </div>
+                <InputGroup
+                    label="插管嘗試次數"
+                    type="number"
+                    min="0"
+                    value={info.endoAttempts}
+                    onChange={(e) => onChange('endoAttempts', parseInt(e.target.value) || 0)}
+                    required
+                />
                 
                 {/* Use renderStyledSelect for conditional styling */}
                 {renderStyledSelect('進階呼吸道器材', 'airwayDevice', AIRWAY_OPTIONS)}
             </div>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="mb-4 w-full">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                        ETCO2 有無放置
-                    </label>
-                    <select
-                        value={info.etco2Used}
-                        onChange={(e) => onChange('etco2Used', e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-medical-500 transition-colors bg-white text-slate-800"
-                    >
-                        <option value="">請選擇</option>
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                        <option value="N/A">N/A</option>
-                    </select>
-                </div>
+                <InputGroup
+                label="ETCO2 有無放置"
+                as="select"
+                options={['Yes', 'No', 'N/A']}
+                value={info.etco2Used}
+                onChange={(e) => onChange('etco2Used', e.target.value)}
+                />
                 <InputGroup
                 label="ETCO2 數值 (mmHg)"
                 type="number"
