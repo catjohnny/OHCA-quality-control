@@ -2,7 +2,6 @@
 import React, { useMemo, useState } from 'react';
 import { AppState, TimeRecord, InterruptionItem } from '../types';
 import { calculateCorrectedAedTime, formatTimeDisplay } from '../services/timeUtils';
-import { REQUIRED_TIME_FIELDS, TIME_FIELD_LABELS } from '../constants';
 
 const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbwb0A9Qu0nH47yxFHFouO7rS09SaBHhOurQT4GUj65hacafPmjkou2UAstpbbnzcukisg/exec"; 
 
@@ -85,7 +84,6 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
   const airwayTime = isAirwayNA ? null : getSafeDuration(times.ohca, times.airway);
 
   // CCF 計算邏輯
-  
   // 1. 計算 OHCA -> Pads 的總時間
   const durationOhcaToPads = getSafeDuration(times.ohca, times.pads);
   // Time in Comp (Pre-AED): OHCA->Pads時間 - 貼片前中斷
@@ -106,7 +104,7 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
 
   // 3. 計算總 CCF
   let manualCCF = 'N/A';
-  let totalCompTimeStr = '無法計算';
+  // let totalCompTimeStr = '無法計算'; // Unused
 
   // 分母：總持續時間 (OHCA -> MCPR 或 OHCA -> AED Off)
   const totalDuration = isMcprNA
@@ -115,11 +113,27 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
 
   if (timeInCompPreAed !== null && timeInCompPreMcpr !== null && totalDuration !== null && totalDuration > 0) {
       const totalComp = timeInCompPreAed + timeInCompPreMcpr;
-      totalCompTimeStr = `${Math.floor(totalComp)} 秒`;
+      // totalCompTimeStr = `${Math.floor(totalComp)} 秒`;
       manualCCF = ((totalComp / totalDuration) * 100).toFixed(1) + '%';
   } else if (totalDuration !== null && totalDuration <= 0) {
       manualCCF = '時間錯誤'; // 分母非正數
   }
+
+  // Format Helper for Display (MM:SS)
+  const formatDurationDisplay = (val: number | string | null): string => {
+      if (val === null) return '--';
+      if (typeof val === 'string') return val;
+      
+      const absVal = Math.abs(val);
+      if (absVal < 60) {
+          return `${Math.floor(val)}秒`;
+      }
+      
+      const mins = Math.floor(absVal / 60);
+      const secs = Math.floor(absVal % 60);
+      // Use original sign if needed, though mostly durations are positive
+      return `${mins}分${secs}秒`;
+  };
 
   // Generate payload for Google Sheet
   const handleSubmit = async () => {
@@ -135,7 +149,6 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
 
     const payload = {
         basicInfo: data.basicInfo,
-        // Send raw inputs (first non-empty) for reference
         rawTimes: {
             found: rawFmt(data.timeRecords.found),
             contact: rawFmt(data.timeRecords.contact),
@@ -144,27 +157,25 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
             pads: rawFmt(data.timeRecords.padsOn),
             vent: rawFmt(data.timeRecords.firstVentilation),
             mcpr: rawFmt(data.timeRecords.mcprSetup),
-            airway: rawFmt(data.timeRecords.airway), // New field
+            airway: rawFmt(data.timeRecords.airway),
             med: rawFmt(data.timeRecords.firstMed),
             rosc: rawFmt(data.timeRecords.rosc),
         },
-        // Send Corrected Times (HH:mm:ss)
         correctedTimes: {
             ohca: fmt(times.ohca),
             cpr: fmt(times.cpr),
             pads: fmt(times.pads),
             vent: fmt(times.vent),
             mcpr: fmt(times.mcpr),
-            airway: fmt(times.airway), // New field
+            airway: fmt(times.airway),
             med: fmt(times.med),
             aedOff: fmt(times.aedOff),
         },
-        // QC Metrics
         metrics: {
             cprDelay: cprDelay !== null ? cprDelay : '',
             padsDelay: padsDelay !== null ? padsDelay : '',
             bvmTime: bvmTime !== null ? bvmTime : (isVentNA ? '未執行 BVM' : ''),
-            airwayTime: airwayTime !== null ? airwayTime : (isAirwayNA ? '未建立輔助呼吸道' : ''), // New metric
+            airwayTime: airwayTime !== null ? airwayTime : (isAirwayNA ? '未建立輔助呼吸道' : ''),
             medDelay: medDelay !== null ? medDelay : '',
             ccf: manualCCF,
             preAedComp: timeInCompPreAed,
@@ -183,34 +194,87 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
     try {
         await fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
-            mode: 'no-cors', // Important for GS script
+            mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
         setIsSubmitting(false);
         setIsSuccess(true);
-        setTimeout(() => {
-            onClose();
-            onSubmit(); 
-        }, 2000);
+        // Do not close immediately, wait for user choice
     } catch (error) {
         setIsSubmitting(false);
         setErrorMessage('上傳失敗，請檢查網路連線');
     }
   };
 
+  const handleCopyResult = async () => {
+    const members = [
+        data.basicInfo.member1, data.basicInfo.member2, data.basicInfo.member3,
+        data.basicInfo.member4, data.basicInfo.member5, data.basicInfo.member6
+    ].filter(Boolean).join('、');
+
+    const bvmText = isVentNA ? '未執行 BVM' : formatDurationDisplay(bvmTime);
+    const airwayText = isAirwayNA ? '未建立輔助呼吸道' : formatDurationDisplay(airwayTime);
+    
+    // Construct the text template
+    const text = `📋 【新北 OHCA 品管成果】
+
+👤 出勤人員：${members}
+
+💓 AED 初始心律：${data.technicalInfo.initialRhythm || '未記錄'}
+
+⏱️ 時間指標：
+判斷OHCA ⮕ CPR開始：${formatDurationDisplay(cprDelay)}
+判斷OHCA ⮕ 貼片貼上：${formatDurationDisplay(padsDelay)}
+第一次BVM所需時間：${bvmText}
+建立呼吸道時間：${airwayText}
+給藥速率：${formatDurationDisplay(medDelay)}
+
+⚠️ CPR 中斷：
+貼片前中斷：${formatDurationDisplay(interruptionPads)}
+MCPR前中斷：${formatDurationDisplay(interruptionMcpr)}
+
+📊 CCF 數據：
+徒手 CCF：${manualCCF}
+整體 CCF：${manualCCF}
+
+🛠️ 處置認列：
+AED 貼片位置是否正確：${data.technicalInfo.aedPadCorrect || '--'}
+是否檢查頸動脈：${data.technicalInfo.checkPulse || '--'}
+壓胸機有無使用：${data.technicalInfo.useCompressor || '--'}
+插管嘗試次數：${data.technicalInfo.endoAttempts}
+進階呼吸道器材：${data.technicalInfo.airwayDevice || '--'}
+ETCO2 有無放置：${data.technicalInfo.etco2Used || '--'}
+
+📝 品管點評：
+${data.basicInfo.memo || '無'}`;
+
+    try {
+        await navigator.clipboard.writeText(text);
+        alert('已複製到剪貼簿！');
+    } catch (err) {
+        console.error('Copy failed', err);
+        alert('複製失敗，請手動選取文字');
+    }
+  };
+
   const renderMetricRow = (label: string, value: string | number | null, unit: string = '秒', subText: string = '') => {
       let displayValue = '--';
-      let isError = false;
       let textClass = "text-slate-800";
 
+      // Use the new formatter for numeric values (metrics)
+      // Check if it's a numeric metric that needs duration formatting
+      const isDurationMetric = (typeof value === 'number');
+
       if (typeof value === 'string') {
-          displayValue = value; // Handle "N/A" or error messages
+          displayValue = value; 
           if (value.includes('未') || value.includes('N/A')) textClass = "text-slate-400 font-normal";
       } else if (value !== null) {
-          displayValue = value.toString();
+          // If it's a duration metric, format it. If it's pure count/percentage (like CCF logic above already converts to string), handle accordingly.
+          // In this component context, numeric values passed to this function are mostly durations.
+          // Note: unit is passed as '秒' but formatting might change it.
+          displayValue = formatDurationDisplay(value);
           if (value < 0) {
-              isError = true;
               textClass = "text-red-600 font-bold";
           }
       }
@@ -222,7 +286,10 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
                 {subText && <span className="text-[10px] text-slate-400">{subText}</span>}
             </div>
             <span className={`font-mono text-lg ${textClass}`}>
-                {displayValue} <span className="text-xs text-slate-400 font-sans">{typeof value === 'number' ? unit : ''}</span>
+                {displayValue} 
+                {/* Only show unit if it wasn't formatted to XX分XX秒 (which contains unit) AND is a number. 
+                    However, formatDurationDisplay returns string with units. So we hide this extra unit if formatted. */}
+                {typeof value === 'number' && !displayValue.includes('分') && !displayValue.includes('秒') && <span className="text-xs text-slate-400 font-sans">{unit}</span>}
             </span>
         </div>
       );
@@ -230,13 +297,28 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
 
   if (isSuccess) {
       return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-              <div className="bg-white rounded-xl p-8 text-center shadow-xl">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fadeIn">
+              <div className="bg-white rounded-xl p-8 text-center shadow-xl max-w-sm w-full">
                   <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                       <i className="fas fa-check text-2xl"></i>
                   </div>
                   <h2 className="text-xl font-bold text-slate-800 mb-2">上傳成功</h2>
-                  <p className="text-slate-500">資料已傳送至 Google Sheet</p>
+                  <p className="text-slate-500 mb-6">資料已成功傳送至 Google Sheet</p>
+                  
+                  <div className="space-y-3">
+                    <button 
+                        onClick={handleCopyResult}
+                        className="w-full py-3 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-900 transition-colors shadow-lg flex items-center justify-center gap-2"
+                    >
+                        <i className="fas fa-copy"></i> 複製品管成果文字
+                    </button>
+                    <button 
+                        onClick={() => { onClose(); onSubmit(); }}
+                        className="w-full py-3 bg-white border border-slate-300 text-slate-600 rounded-lg font-bold hover:bg-slate-50 transition-colors"
+                    >
+                        關閉視窗
+                    </button>
+                  </div>
               </div>
           </div>
       );
@@ -275,12 +357,12 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
                  <div className="space-y-2 mb-4">
                     <div className="flex justify-between text-sm">
                         <span className="text-slate-500">壓胸時間 (貼片前)</span>
-                        <span className="font-mono">{timeInCompPreAed !== null ? Math.floor(timeInCompPreAed) : '--'} 秒</span>
+                        <span className="font-mono">{formatDurationDisplay(timeInCompPreAed)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                         <span className="text-slate-500">壓胸時間 (MCPR/Off 前)</span>
                         <span className="font-mono">
-                            {timeInCompPreMcpr !== null ? Math.floor(timeInCompPreMcpr) : (isMcprNA ? 'N/A' : '--')} 秒
+                            {isMcprNA ? 'N/A' : formatDurationDisplay(timeInCompPreMcpr)}
                         </span>
                     </div>
                     {isMcprNA && (
@@ -306,17 +388,24 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
             )}
         </div>
 
-        <div className="sticky bottom-0 bg-white border-t border-slate-100 p-4">
+        <div className="sticky bottom-0 bg-white border-t border-slate-100 p-4 flex gap-3">
+            <button 
+                onClick={onClose}
+                disabled={isSubmitting}
+                className="flex-1 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+            >
+                返回修正
+            </button>
             <button 
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className={`w-full py-3 rounded-xl font-bold text-white shadow-lg transition-all transform active:scale-95 flex justify-center items-center
+                className={`flex-[2] py-3 rounded-xl font-bold text-white shadow-lg transition-all transform active:scale-95 flex justify-center items-center
                     ${isSubmitting ? 'bg-slate-400 cursor-wait' : 'bg-gradient-to-r from-medical-600 to-medical-500 hover:shadow-medical-200'}`}
             >
                 {isSubmitting ? (
                     <><i className="fas fa-spinner fa-spin mr-2"></i> 上傳中...</>
                 ) : (
-                    <><i className="fas fa-cloud-upload-alt mr-2"></i> 確認並上傳 Google Sheet</>
+                    <><i className="fas fa-cloud-upload-alt mr-2"></i> 確認並上傳</>
                 )}
             </button>
         </div>
