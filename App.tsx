@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { TimeCalibration } from './components/TimeCalibration';
 import { TimeRecording } from './components/TimeRecording';
@@ -106,7 +105,15 @@ const App: React.FC = () => {
 
   const tabs = [
     { title: '基本資料', icon: 'fa-file-medical', component: <BasicInfo info={data.basicInfo} onChange={updateBasic} /> },
-    { title: '時間校正', icon: 'fa-clock', component: <TimeCalibration calibration={data.calibration} onChange={updateCalibration} /> },
+    { 
+        title: '時間校正', 
+        icon: 'fa-clock', 
+        component: <TimeCalibration 
+            calibration={data.calibration} 
+            onChange={updateCalibration} 
+            defaultDate={data.basicInfo.date} 
+        /> 
+    },
     { title: '時間紀錄', icon: 'fa-stopwatch', component: <TimeRecording data={data} onChange={updateTimeRecord} /> },
     { title: '中斷時間', icon: 'fa-pause-circle', component: <Interruption records={data.interruptionRecords} onChange={updateInterruption} /> },
     { 
@@ -151,6 +158,7 @@ const App: React.FC = () => {
             <h2 className="text-xl font-bold text-slate-900 mb-1">{tabs[activeTab].title}</h2>
             <p className="text-slate-500 text-xs">
                 {activeTab === 0 && "請優先填寫基本資料"}
+                {activeTab === 1 && "請校正密錄器與 AED 時間"}
                 {activeTab === 2 && "輸入時間，系統將自動套用校正"}
                 {activeTab === 3 && "紀錄 CPR 中斷原因與時間"}
             </p>
