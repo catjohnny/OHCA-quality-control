@@ -2,9 +2,8 @@
 import React, { useMemo, useState } from 'react';
 import { AppState, TimeRecord, InterruptionItem } from '../types';
 import { calculateCorrectedAedTime, formatTimeDisplay } from '../services/timeUtils';
-import { TIME_FIELD_LABELS } from '../constants';
 
-const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbzr7q5aJwsBjzpPwm6qtIVBM95K5uEsTDdXcqWwG2PTjNhQXDx5_ScwQHkfJHbCMrvkxA/exec"; 
+const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbwb0A9Qu0nH47yxFHFouO7rS09SaBHhOurQT4GUj65hacafPmjkou2UAstpbbnzcukisg/exec"; 
 const GOOGLE_SHEET_URL: string = "https://docs.google.com/spreadsheets/d/1DxjxcX5eklxkuXsQwRphw1z_eT8AOgD9OJavBCpjfcM/edit?gid=0#gid=0";
 
 interface Props {
@@ -204,6 +203,10 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
       return `${mins}分${secs}秒`;
   };
 
+  // Pre-calculate display strings for consistency
+  const bvmText = isVentNA ? '未執行 BVM' : formatDurationDisplay(bvmTime);
+  const airwayText = isAirwayNA ? '未建立輔助呼吸道' : formatDurationDisplay(airwayTime);
+
   // Generate payload for Google Sheet
   const handleSubmit = async () => {
     if (!isValid) return;
@@ -284,9 +287,6 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
         data.basicInfo.member4, data.basicInfo.member5, data.basicInfo.member6
     ].filter(Boolean).join('、');
 
-    const bvmText = isVentNA ? '未執行 BVM' : formatDurationDisplay(bvmTime);
-    const airwayText = isAirwayNA ? '未建立輔助呼吸道' : formatDurationDisplay(airwayTime);
-    
     // Construct the text template
     const text = `📋 【新北 OHCA 品管成果】
 
@@ -329,35 +329,19 @@ ${data.basicInfo.memo || '無'}`;
     }
   };
 
-  const renderMetricRow = (label: string, value: string | number | null, unit: string = '秒', subText: string = '') => {
-      let displayValue = '--';
-      let textClass = "text-slate-800";
+  const renderSectionHeader = (title: string, icon: string) => (
+    <div className="bg-slate-100 px-3 py-2 rounded-lg font-bold text-slate-700 text-sm flex items-center mt-6 mb-2 first:mt-0">
+      <i className={`fas ${icon} mr-2 w-5 text-center text-medical-600`}></i>
+      {title}
+    </div>
+  );
 
-      const isDurationMetric = (typeof value === 'number');
-
-      if (typeof value === 'string') {
-          displayValue = value; 
-          if (value.includes('未') || value.includes('N/A')) textClass = "text-slate-400 font-normal";
-      } else if (value !== null) {
-          displayValue = formatDurationDisplay(value);
-          if (value < 0) {
-              textClass = "text-red-600 font-bold";
-          }
-      }
-
-      return (
-        <div className="flex justify-between items-center py-3 border-b border-slate-100 last:border-0">
-            <div>
-                <span className="text-slate-600 font-medium block">{label}</span>
-                {subText && <span className="text-[10px] text-slate-400">{subText}</span>}
-            </div>
-            <span className={`font-mono text-lg ${textClass}`}>
-                {displayValue} 
-                {typeof value === 'number' && !displayValue.includes('分') && !displayValue.includes('秒') && <span className="text-xs text-slate-400 font-sans">{unit}</span>}
-            </span>
-        </div>
-      );
-  };
+  const renderSimpleRow = (label: string, value: string) => (
+    <div className="flex justify-between items-start py-2 border-b border-slate-50 last:border-0 text-sm">
+        <span className="text-slate-600 font-medium shrink-0 mr-4">{label}</span>
+        <span className="text-slate-800 text-right font-mono break-words max-w-[60%]">{value}</span>
+    </div>
+  );
 
   if (isSuccess) {
       return (
@@ -410,7 +394,7 @@ ${data.basicInfo.memo || '無'}`;
             </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-2">
             
             {/* Missing Fields Warning */}
             {!isValid && (
@@ -428,48 +412,43 @@ ${data.basicInfo.memo || '無'}`;
             )}
 
             {/* Time Metrics */}
-            <div className="space-y-1">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">時效指標</h3>
-                {renderMetricRow('OHCA -> CPR', cprDelay, '秒', '判斷 OHCA 到 開始壓胸')}
-                {renderMetricRow('OHCA -> 貼片', padsDelay, '秒', '判斷 OHCA 到 貼上貼片')}
-                {renderMetricRow('第一次 BVM 所需時間', bvmTime, '秒', '判斷 OHCA 到 第一次給氣')}
-                {renderMetricRow('建立呼吸道時間', airwayTime, '秒', '判斷 OHCA 到 呼吸道建立')}
-                {renderMetricRow('OHCA -> 給藥', medDelay, '秒', '判斷 OHCA 到 第一次給藥')}
+            {renderSectionHeader('時間指標', 'fa-stopwatch')}
+            <div className="bg-white rounded-lg border border-slate-200 px-4 py-1">
+                {renderSimpleRow('判斷OHCA ⮕ CPR開始', formatDurationDisplay(cprDelay))}
+                {renderSimpleRow('判斷OHCA ⮕ 貼片貼上', formatDurationDisplay(padsDelay))}
+                {renderSimpleRow('第一次BVM所需時間', bvmText)}
+                {renderSimpleRow('建立呼吸道時間', airwayText)}
+                {renderSimpleRow('給藥速率', formatDurationDisplay(medDelay))}
             </div>
 
-            {/* CCF Metrics */}
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">徒手 CCF 計算</h3>
-                 
-                 <div className="space-y-2 mb-4">
-                    <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">壓胸時間 (貼片前)</span>
-                        <span className="font-mono">{formatDurationDisplay(timeInCompPreAed)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">壓胸時間 (MCPR/Off 前)</span>
-                        <span className="font-mono">
-                            {isMcprNA ? 'N/A' : formatDurationDisplay(timeInCompPreMcpr)}
-                        </span>
-                    </div>
-                    {isMcprNA && (
-                        <div className="text-[10px] text-blue-500 text-right mt-1">
-                            * MCPR 未執行，計算至 AED 關機
-                        </div>
-                    )}
-                 </div>
+            {/* Interruptions */}
+            {renderSectionHeader('CPR 中斷', 'fa-pause-circle')}
+            <div className="bg-white rounded-lg border border-slate-200 px-4 py-1">
+                {renderSimpleRow('貼片前中斷', formatDurationDisplay(interruptionPads))}
+                {renderSimpleRow('MCPR前中斷', formatDurationDisplay(interruptionMcpr))}
+            </div>
 
-                 <div className="flex justify-between items-end border-t border-slate-200 pt-3">
-                    <span className="font-bold text-slate-700">徒手 CCF</span>
-                    <span className={`text-3xl font-bold font-mono ${manualCCF === 'N/A' ? 'text-slate-400' : 'text-medical-600'}`}>
-                        {manualCCF}
-                    </span>
-                 </div>
+            {/* CCF */}
+            {renderSectionHeader('CCF 數據', 'fa-chart-pie')}
+            <div className="bg-white rounded-lg border border-slate-200 px-4 py-1">
+                {renderSimpleRow('徒手 CCF', manualCCF)}
+                {renderSimpleRow('整體 CCF', manualCCF)}
+            </div>
+
+            {/* Technical */}
+            {renderSectionHeader('處置認列', 'fa-stethoscope')}
+            <div className="bg-white rounded-lg border border-slate-200 px-4 py-1">
+                {renderSimpleRow('AED 貼片位置是否正確', data.technicalInfo.aedPadCorrect || '--')}
+                {renderSimpleRow('是否檢查頸動脈', data.technicalInfo.checkPulse || '--')}
+                {renderSimpleRow('壓胸機有無使用', data.technicalInfo.useCompressor || '--')}
+                {renderSimpleRow('插管嘗試次數', data.technicalInfo.endoAttempts.toString())}
+                {renderSimpleRow('進階呼吸道器材', data.technicalInfo.airwayDevice || '--')}
+                {renderSimpleRow('ETCO2 有無放置', data.technicalInfo.etco2Used || '--')}
             </div>
 
             {/* Error Message */}
             {errorMessage && (
-                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center">
+                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center mt-4">
                     {errorMessage}
                 </div>
             )}
