@@ -209,7 +209,7 @@ const App: React.FC = () => {
                 onClick={handleReset}
                 className="bg-white text-slate-600 border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center"
             >
-                <i className="fas fa-plus mr-1"></i> <span className="hidden sm:inline">新案件</span>
+                <i className="fas fa-plus mr-1"></i> <span>新案件</span>
             </button>
             <button 
                 onClick={() => setShowPreview(true)}
