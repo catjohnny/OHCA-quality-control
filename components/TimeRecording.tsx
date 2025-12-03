@@ -93,11 +93,8 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
         case 'firstVentilation': return !isAfter('ohcaJudgment');
         case 'mcprSetup': return !isAfter('cprStart');
         case 'firstMed': return !isAfter('ohcaJudgment');
-        case 'airway': return !isAfter('ohcaJudgment'); // Airway after OHCA
+        case 'airway': return !isAfter('ohcaJudgment');
         case 'aedOff': 
-            // If MCPR is NA, check against padsOn or CPR start? default mcprSetup check returns true if null.
-            // Safe to check against padsOn if mcpr missing? 
-            // Let's keep simple dependency: if Mcpr exists, check mcpr, else check pads
             if (t.mcprSetup) return !isAfter('mcprSetup');
             return !isAfter('padsOn');
         case 'rosc': return !isEqual('aedOff');
@@ -106,7 +103,6 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
         default: return false;
     }
   };
-
 
   const getStyle = (val: string, disabled: boolean, isError: boolean) => {
     if (disabled) {

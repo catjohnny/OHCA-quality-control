@@ -14,7 +14,6 @@ interface Props {
 
 export const TechnicalSkills: React.FC<Props> = ({ info, basicInfo, onChange, onBasicChange, crewMembers }) => {
   
-  // Helper to render a select with specific styling for 'No' values or specific negative answers
   const renderStyledSelect = (
     label: string, 
     field: keyof TechnicalInfo, 
@@ -83,7 +82,6 @@ export const TechnicalSkills: React.FC<Props> = ({ info, basicInfo, onChange, on
                     </select>
                 </div>
                 
-                {/* Use renderStyledSelect for conditional styling */}
                 {renderStyledSelect('進階呼吸道器材', 'airwayDevice', AIRWAY_OPTIONS)}
             </div>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -148,7 +146,7 @@ export const TechnicalSkills: React.FC<Props> = ({ info, basicInfo, onChange, on
         </div>
       </div>
 
-      {/* Memo / Quality Control Review Section */}
+      {/* Memo Section */}
       <div>
         <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-4">品管點評</h3>
         <InputGroup

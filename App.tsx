@@ -118,7 +118,7 @@ const App: React.FC = () => {
             firstVentilation: { emt1: '', emt2: '', emt3: '' },
             mcprSetup: { emt1: '', emt2: '', emt3: '' },
             firstMed: { emt1: '', emt2: '', emt3: '' },
-            airway: { emt1: '', emt2: '', emt3: '' },
+            airway: { emt1: '', emt2: '', emt3: '' }, // Reset new field
             aedOff: '',
             rosc: { emt1: '', emt2: '', emt3: '' },
             firstShock: '',

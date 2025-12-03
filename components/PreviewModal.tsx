@@ -78,336 +78,249 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
   // Base metrics
   const cprDelay = getSafeDuration(times.ohca, times.cpr);
   const padsDelay = getSafeDuration(times.ohca, times.pads);
+  // 若給氣未執行，時間差計算為 null，後續顯示邏輯會處理文字
   const bvmTime = isVentNA ? null : getSafeDuration(times.ohca, times.vent); 
   const medDelay = getSafeDuration(times.ohca, times.med);
+  // 若呼吸道未建立，時間差計算為 null
   const airwayTime = isAirwayNA ? null : getSafeDuration(times.ohca, times.airway);
 
-  // New Metrics Calculations
+  // CCF 計算邏輯
+  
   // 1. 計算 OHCA -> Pads 的總時間
   const durationOhcaToPads = getSafeDuration(times.ohca, times.pads);
+  // Time in Comp (Pre-AED): OHCA->Pads時間 - 貼片前中斷
   const timeInCompPreAed = (durationOhcaToPads !== null) 
     ? durationOhcaToPads - interruptionPads 
     : null;
 
-  // 2. 計算 Pads -> MCPR (或 AED Off 如果 MCPR 未執行) 的總時間
+  // 2. 計算 Pads -> MCPR (或 AED Off) 的總時間
+  // 若 MCPR 未執行(N/A)，則計算至 AED 關機
   const durationPadsToMcpr = isMcprNA 
      ? getSafeDuration(times.pads, times.aedOff) 
      : getSafeDuration(times.pads, times.mcpr);
 
+  // Time in Comp (Pre-MCPR): Pads->MCPR(or Off)時間 - MCPR前中斷
   const timeInCompPreMcpr = (durationPadsToMcpr !== null)
     ? durationPadsToMcpr - interruptionMcpr
     : null;
 
-  // 3. 計算 MCPR -> AED Off 的總時間 (若 MCPR N/A 則為 null)
-  const timeInCompPostMcpr = isMcprNA
-     ? null 
-     : getSafeDuration(times.mcpr, times.aedOff);
-
-  // 計算徒手 CCF
+  // 3. 計算總 CCF
   let manualCCF = 'N/A';
-  // 分母邏輯：正常為 OHCA->MCPR。若 MCPR 未執行，則為 OHCA -> AED Off
-  const totalDurationManual = isMcprNA
-     ? getSafeDuration(times.ohca, times.aedOff)
-     : getSafeDuration(times.ohca, times.mcpr);
+  let totalCompTimeStr = '無法計算';
 
-  // 分子：PreAED + PreMCPR
-  if (timeInCompPreAed !== null && timeInCompPreMcpr !== null && totalDurationManual !== null) {
-    const totalComp = timeInCompPreAed + timeInCompPreMcpr; 
-    if (totalDurationManual > 0) {
-        manualCCF = ((totalComp / totalDurationManual) * 100).toFixed(1) + '%';
-    }
+  // 分母：總持續時間 (OHCA -> MCPR 或 OHCA -> AED Off)
+  const totalDuration = isMcprNA
+    ? getSafeDuration(times.ohca, times.aedOff)
+    : getSafeDuration(times.ohca, times.mcpr);
+
+  if (timeInCompPreAed !== null && timeInCompPreMcpr !== null && totalDuration !== null && totalDuration > 0) {
+      const totalComp = timeInCompPreAed + timeInCompPreMcpr;
+      totalCompTimeStr = `${Math.floor(totalComp)} 秒`;
+      manualCCF = ((totalComp / totalDuration) * 100).toFixed(1) + '%';
+  } else if (totalDuration !== null && totalDuration <= 0) {
+      manualCCF = '時間錯誤'; // 分母非正數
   }
 
-  // 計算整體 CCF
-  let overallCCF = 'N/A';
-  const totalDurationOverall = getSafeDuration(times.pads, times.aedOff);
-
-  if (totalDurationOverall !== null && timeInCompPreMcpr !== null) {
-      let totalComp = timeInCompPreMcpr;
-      if (timeInCompPostMcpr !== null) {
-          totalComp += timeInCompPostMcpr;
-      }
-      
-      if (totalDurationOverall > 0) {
-        overallCCF = ((totalComp / totalDurationOverall) * 100).toFixed(1) + '%';
-      }
-  }
-
-  const formatDiff = (seconds: number | null, isNA: boolean = false, naText: string = 'N/A') => {
-    if (isNA) return naText;
-    if (seconds === null) return 'N/A';
-    const absS = Math.abs(seconds);
-    const m = Math.floor(absS / 60);
-    const s = absS % 60;
-    const sign = seconds < 0 ? '-' : '';
-    if (m === 0) return `${sign}${s}秒`;
-    return `${sign}${m}分${s}秒`;
-  };
-
-  // Validations
-  const roscMismatch = (times.rosc && times.aedOff) 
-    ? Math.abs(times.rosc.getTime() - times.aedOff.getTime()) > 1000
-    : false;
-  
-  const hasNegativeValues = [cprDelay, padsDelay, bvmTime, medDelay, airwayTime, timeInCompPreAed, timeInCompPreMcpr, timeInCompPostMcpr]
-    .some(v => v !== null && v < 0);
-
-  const missingFields = REQUIRED_TIME_FIELDS.filter(k => {
-      const key = k as keyof TimeRecord;
-      if (key === 'mcprSetup' && isMcprNA) return false;
-      if (key === 'firstVentilation' && isVentNA) return false;
-      if (key === 'airway' && isAirwayNA) return false;
-
-      const raw = data.timeRecords[key];
-      return !calculateCorrectedAedTime(key, raw, data.calibration);
-  });
-
-  const missingFieldNames = missingFields.map(k => TIME_FIELD_LABELS[k] || k).join('、');
-  const canSubmit = !roscMismatch && !hasNegativeValues && missingFields.length === 0;
-
-  const handleConfirm = async () => {
-    if (GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_SCRIPT_URL_HERE" || !GOOGLE_SCRIPT_URL) {
-        alert("尚未設定 Google Script 網址，請聯繫管理員更新程式碼。");
-        return;
-    }
-
+  // Generate payload for Google Sheet
+  const handleSubmit = async () => {
     setIsSubmitting(true);
-    setErrorMessage('');
-
-    // Prepare Payload
-    const crew = [data.basicInfo.member1, data.basicInfo.member2, data.basicInfo.member3, data.basicInfo.member4, data.basicInfo.member5, data.basicInfo.member6]
-        .filter(Boolean).join('、');
     
-    const fmtT = (d: Date | null) => d ? formatTimeDisplay(d.toISOString()) : '';
+    // Formatting helper
+    const fmt = (d: Date | null) => d ? formatTimeDisplay(d.toISOString()) : '';
+    const rawFmt = (t: string | object) => {
+        if (typeof t === 'string') return t;
+        const vals = Object.values(t);
+        return vals.find(v => v && v !== 'N/A') || ''; // Return first non-empty, non-NA
+    };
 
     const payload = {
-        date: data.basicInfo.date,
-        caseId: data.basicInfo.caseId,
-        unit: data.basicInfo.unit,
-        reviewer: data.basicInfo.reviewer,
-        crew: crew,
-        ohcaType: data.basicInfo.ohcaType,
-        notification: data.basicInfo.notificationTime,
-        rhythm: data.technicalInfo.initialRhythm,
-        compressor: data.technicalInfo.useCompressor,
-        endoAttempts: data.technicalInfo.endoAttempts,
-        airway: data.technicalInfo.airwayDevice,
-        etco2: data.technicalInfo.etco2Used === 'Yes' ? data.technicalInfo.etco2Value : data.technicalInfo.etco2Used,
-        pulse: data.technicalInfo.checkPulse,
-        padsCorrect: data.technicalInfo.aedPadCorrect,
-        ivOp: data.technicalInfo.ivOperator,
-        ioOp: data.technicalInfo.ioOperator,
-        endoOp: data.technicalInfo.endoOperator,
-        leader: data.technicalInfo.teamLeader,
-        
-        // Times
-        t_ohca: fmtT(times.ohca),
-        t_cpr: fmtT(times.cpr),
-        t_pads: fmtT(times.pads),
-        t_vent: isVentNA ? 'N/A' : fmtT(times.vent),
-        t_mcpr: isMcprNA ? 'N/A' : fmtT(times.mcpr),
-        t_med: fmtT(times.med),
-        t_airway: isAirwayNA ? 'N/A' : fmtT(times.airway),
-        t_off: fmtT(times.aedOff),
-        t_rosc: fmtT(times.rosc),
-        
-        // Metrics
-        int_pads: interruptionPads,
-        int_mcpr: interruptionMcpr,
-        ccf_manual: manualCCF,
-        ccf_overall: overallCCF,
-        
-        memo: data.basicInfo.memo
+        basicInfo: data.basicInfo,
+        // Send raw inputs (first non-empty) for reference
+        rawTimes: {
+            found: rawFmt(data.timeRecords.found),
+            contact: rawFmt(data.timeRecords.contact),
+            ohca: rawFmt(data.timeRecords.ohcaJudgment),
+            cpr: rawFmt(data.timeRecords.cprStart),
+            pads: rawFmt(data.timeRecords.padsOn),
+            vent: rawFmt(data.timeRecords.firstVentilation),
+            mcpr: rawFmt(data.timeRecords.mcprSetup),
+            airway: rawFmt(data.timeRecords.airway), // New field
+            med: rawFmt(data.timeRecords.firstMed),
+            rosc: rawFmt(data.timeRecords.rosc),
+        },
+        // Send Corrected Times (HH:mm:ss)
+        correctedTimes: {
+            ohca: fmt(times.ohca),
+            cpr: fmt(times.cpr),
+            pads: fmt(times.pads),
+            vent: fmt(times.vent),
+            mcpr: fmt(times.mcpr),
+            airway: fmt(times.airway), // New field
+            med: fmt(times.med),
+            aedOff: fmt(times.aedOff),
+        },
+        // QC Metrics
+        metrics: {
+            cprDelay: cprDelay !== null ? cprDelay : '',
+            padsDelay: padsDelay !== null ? padsDelay : '',
+            bvmTime: bvmTime !== null ? bvmTime : (isVentNA ? '未執行 BVM' : ''),
+            airwayTime: airwayTime !== null ? airwayTime : (isAirwayNA ? '未建立輔助呼吸道' : ''), // New metric
+            medDelay: medDelay !== null ? medDelay : '',
+            ccf: manualCCF,
+            preAedComp: timeInCompPreAed,
+            preMcprComp: timeInCompPreMcpr,
+            isMcprNA: isMcprNA,
+            isVentNA: isVentNA,
+            isAirwayNA: isAirwayNA
+        },
+        technical: data.technicalInfo,
+        interruptions: {
+            pads: interruptionPads,
+            mcpr: interruptionMcpr
+        }
     };
 
     try {
         await fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
-            mode: 'no-cors', 
+            mode: 'no-cors', // Important for GS script
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+            body: JSON.stringify(payload)
         });
-
         setIsSubmitting(false);
         setIsSuccess(true);
-        if (onSubmit) onSubmit();
-
+        setTimeout(() => {
+            onClose();
+            onSubmit(); 
+        }, 2000);
     } catch (error) {
-        console.error("Submission Error:", error);
-        setErrorMessage("連線失敗，請檢查網路或稍後再試。");
         setIsSubmitting(false);
+        setErrorMessage('上傳失敗，請檢查網路連線');
     }
   };
 
-  const getCopyText = () => {
-    const crew = [data.basicInfo.member1, data.basicInfo.member2, data.basicInfo.member3]
-        .filter(Boolean).join('、');
-        
-    return `📋 【新北 OHCA 品管成果】
+  const renderMetricRow = (label: string, value: string | number | null, unit: string = '秒', subText: string = '') => {
+      let displayValue = '--';
+      let isError = false;
+      let textClass = "text-slate-800";
 
-👤 出勤人員：${crew}
+      if (typeof value === 'string') {
+          displayValue = value; // Handle "N/A" or error messages
+          if (value.includes('未') || value.includes('N/A')) textClass = "text-slate-400 font-normal";
+      } else if (value !== null) {
+          displayValue = value.toString();
+          if (value < 0) {
+              isError = true;
+              textClass = "text-red-600 font-bold";
+          }
+      }
 
-💓 AED 初始心律：${data.technicalInfo.initialRhythm}
-
-⏱️ 時間指標：
-判斷OHCA ⮕ CPR開始：${formatDiff(cprDelay)}
-判斷OHCA ⮕ 貼片貼上：${formatDiff(padsDelay)}
-第一次BVM所需時間：${formatDiff(bvmTime, isVentNA, '未執行BVM')}
-建立呼吸道時間：${formatDiff(airwayTime, isAirwayNA, '未建立輔助呼吸道')}
-給藥速率：${formatDiff(medDelay)}
-
-⚠️ CPR 中斷：
-貼片前中斷：${interruptionPads}秒
-MCPR前中斷：${interruptionMcpr}秒
-
-📊 CCF 數據：
-徒手 CCF：${manualCCF}
-整體 CCF：${overallCCF}
-
-🛠️ 處置認列：
-AED 貼片位置是否正確：${data.technicalInfo.aedPadCorrect}
-是否檢查頸動脈：${data.technicalInfo.checkPulse}
-壓胸機有無使用：${data.technicalInfo.useCompressor}
-插管嘗試次數：${data.technicalInfo.endoAttempts}
-進階呼吸道器材：${data.technicalInfo.airwayDevice}
-ETCO2 有無放置：${data.technicalInfo.etco2Used}
-
-📝 品管點評：
-${data.basicInfo.memo || '無'}
-`;
-  };
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(getCopyText()).then(() => {
-      alert("複製成功！");
-    });
+      return (
+        <div className="flex justify-between items-center py-3 border-b border-slate-100 last:border-0">
+            <div>
+                <span className="text-slate-600 font-medium block">{label}</span>
+                {subText && <span className="text-[10px] text-slate-400">{subText}</span>}
+            </div>
+            <span className={`font-mono text-lg ${textClass}`}>
+                {displayValue} <span className="text-xs text-slate-400 font-sans">{typeof value === 'number' ? unit : ''}</span>
+            </span>
+        </div>
+      );
   };
 
   if (isSuccess) {
-    return (
-      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl w-full max-w-sm p-6 text-center shadow-2xl animate-fadeIn">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i className="fas fa-check text-2xl text-green-600"></i>
+      return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+              <div className="bg-white rounded-xl p-8 text-center shadow-xl">
+                  <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <i className="fas fa-check text-2xl"></i>
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-800 mb-2">上傳成功</h2>
+                  <p className="text-slate-500">資料已傳送至 Google Sheet</p>
+              </div>
           </div>
-          <h2 className="text-xl font-bold text-slate-900 mb-2">品管資料已上傳完成</h2>
-          <p className="text-slate-500 text-sm mb-6">資料已傳送至 Google Sheet。</p>
-          
-          <button 
-            onClick={copyToClipboard}
-            className="w-full bg-green-600 text-white py-3 px-4 rounded-xl font-semibold shadow-lg shadow-green-200 hover:bg-green-700 active:scale-95 transition-all mb-3 flex items-center justify-center"
-          >
-            <i className="fas fa-copy mr-2"></i> 複製品管成果 (LINE)
-          </button>
-          
-          <button 
-            onClick={onClose}
-            className="w-full text-slate-500 py-2 hover:text-slate-700"
-          >
-            關閉視窗
-          </button>
-        </div>
-      </div>
-    );
+      );
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl">
-        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-medical-50 rounded-t-2xl">
-          <h2 className="text-xl font-bold text-medical-800">品管成果檢視</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
-            <i className="fas fa-times text-xl"></i>
-          </button>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-white w-full max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl max-h-[90vh] overflow-y-auto flex flex-col">
+        
+        <div className="sticky top-0 bg-white border-b border-slate-100 p-4 flex justify-between items-center z-10">
+            <h2 className="text-lg font-bold text-slate-800">
+                <i className="fas fa-clipboard-check text-medical-600 mr-2"></i>
+                品管成果預覽
+            </h2>
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <i className="fas fa-times text-xl"></i>
+            </button>
         </div>
 
-        <div className="p-6 overflow-y-auto space-y-4">
-          
-          <div className="space-y-3">
-             <ResultRow label="判斷OHCA ⮕ CPR開始" value={formatDiff(cprDelay)} isNegative={cprDelay !== null && cprDelay < 0} />
-             <ResultRow label="判斷OHCA ⮕ 貼片" value={formatDiff(padsDelay)} isNegative={padsDelay !== null && padsDelay < 0} />
-             <ResultRow label="第一次BVM所需時間" value={formatDiff(bvmTime, isVentNA, '未執行BVM')} isNegative={bvmTime !== null && bvmTime < 0} />
-             <ResultRow label="建立呼吸道時間" value={formatDiff(airwayTime, isAirwayNA, '未建立輔助呼吸道')} isNegative={airwayTime !== null && airwayTime < 0} />
-             <ResultRow label="給藥速率" value={formatDiff(medDelay)} isNegative={medDelay !== null && medDelay < 0} />
-             
-             <div className="border-t border-slate-100 my-4"></div>
-             
-             <ResultRow label="貼片前中斷" value={`${interruptionPads} 秒`} />
-             <ResultRow label="MCPR前中斷" value={`${interruptionMcpr} 秒`} />
-             <ResultRow label="Time in Comp (AED前)" value={`${timeInCompPreAed?.toFixed(0) ?? 'N/A'} 秒`} isNegative={timeInCompPreAed !== null && timeInCompPreAed < 0} />
-             <ResultRow label="Time in Comp (MCPR前)" value={`${timeInCompPreMcpr?.toFixed(0) ?? 'N/A'} 秒`} isNegative={timeInCompPreMcpr !== null && timeInCompPreMcpr < 0} />
-             <ResultRow label="Time in Comp (MCPR後)" value={isMcprNA ? 'N/A (未架設MCPR)' : `${timeInCompPostMcpr?.toFixed(0) ?? 'N/A'} 秒`} isNegative={timeInCompPostMcpr !== null && timeInCompPostMcpr < 0} />
+        <div className="p-6 space-y-6">
+            
+            {/* Time Metrics */}
+            <div className="space-y-1">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">時效指標</h3>
+                {renderMetricRow('OHCA -> CPR', cprDelay, '秒', '判斷 OHCA 到 開始壓胸')}
+                {renderMetricRow('OHCA -> 貼片', padsDelay, '秒', '判斷 OHCA 到 貼上貼片')}
+                {renderMetricRow('第一次 BVM 所需時間', bvmTime, '秒', '判斷 OHCA 到 第一次給氣')}
+                {renderMetricRow('建立呼吸道時間', airwayTime, '秒', '判斷 OHCA 到 呼吸道建立')}
+                {renderMetricRow('OHCA -> 給藥', medDelay, '秒', '判斷 OHCA 到 第一次給藥')}
+            </div>
 
-             <div className="border-t border-slate-100 my-4"></div>
-             
-             <ResultRow label="徒手 CCF" value={manualCCF} highlight />
-             <ResultRow label="整體 CCF" value={overallCCF} highlight />
-          </div>
+            {/* CCF Metrics */}
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">徒手 CCF 計算</h3>
+                 
+                 <div className="space-y-2 mb-4">
+                    <div className="flex justify-between text-sm">
+                        <span className="text-slate-500">壓胸時間 (貼片前)</span>
+                        <span className="font-mono">{timeInCompPreAed !== null ? Math.floor(timeInCompPreAed) : '--'} 秒</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                        <span className="text-slate-500">壓胸時間 (MCPR/Off 前)</span>
+                        <span className="font-mono">
+                            {timeInCompPreMcpr !== null ? Math.floor(timeInCompPreMcpr) : (isMcprNA ? 'N/A' : '--')} 秒
+                        </span>
+                    </div>
+                    {isMcprNA && (
+                        <div className="text-[10px] text-blue-500 text-right mt-1">
+                            * MCPR 未執行，計算至 AED 關機
+                        </div>
+                    )}
+                 </div>
 
-          <div className="space-y-2 mt-4">
-            {roscMismatch && (
-                <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">
-                    <i className="fas fa-exclamation-circle mr-2"></i>
-                    ROSC 時間 (校正後) 必須等於 AED 關機時間 (直接時間)。
-                </div>
-            )}
-            {hasNegativeValues && (
-                <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">
-                    <i className="fas fa-exclamation-circle mr-2"></i>
-                    偵測到負值時間差，請檢查輸入時間順序。
-                </div>
-            )}
-            {missingFields.length > 0 && (
-                <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">
-                    <i className="fas fa-exclamation-circle mr-2"></i>
-                    <strong>請填寫以下必填欄位：</strong><br/>
-                    {missingFieldNames}
-                </div>
-            )}
+                 <div className="flex justify-between items-end border-t border-slate-200 pt-3">
+                    <span className="font-bold text-slate-700">徒手 CCF</span>
+                    <span className={`text-3xl font-bold font-mono ${manualCCF === 'N/A' ? 'text-slate-400' : 'text-medical-600'}`}>
+                        {manualCCF}
+                    </span>
+                 </div>
+            </div>
+
+            {/* Error Message */}
             {errorMessage && (
-                 <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">
-                    <i className="fas fa-exclamation-circle mr-2"></i>
+                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center">
                     {errorMessage}
                 </div>
             )}
-          </div>
         </div>
 
-        <div className="p-4 border-t border-slate-100 flex gap-3">
-          <button 
-            onClick={onClose}
-            className="flex-1 py-3 px-4 rounded-xl border border-slate-300 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
-          >
-            返回修改
-          </button>
-          <button 
-            onClick={handleConfirm}
-            disabled={isSubmitting || !canSubmit}
-            className={`flex-1 py-3 px-4 rounded-xl text-white font-semibold shadow-lg transition-all flex justify-center items-center
-                ${!canSubmit 
-                    ? 'bg-slate-400 cursor-not-allowed' 
-                    : 'bg-medical-600 shadow-medical-200 hover:bg-medical-700 active:scale-95'
-                }`}
-          >
-            {isSubmitting ? (
-                <>
-                <i className="fas fa-spinner fa-spin mr-2"></i> 資料上傳中...
-                </>
-            ) : (
-                '確認無誤送出'
-            )}
-          </button>
+        <div className="sticky bottom-0 bg-white border-t border-slate-100 p-4">
+            <button 
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className={`w-full py-3 rounded-xl font-bold text-white shadow-lg transition-all transform active:scale-95 flex justify-center items-center
+                    ${isSubmitting ? 'bg-slate-400 cursor-wait' : 'bg-gradient-to-r from-medical-600 to-medical-500 hover:shadow-medical-200'}`}
+            >
+                {isSubmitting ? (
+                    <><i className="fas fa-spinner fa-spin mr-2"></i> 上傳中...</>
+                ) : (
+                    <><i className="fas fa-cloud-upload-alt mr-2"></i> 確認並上傳 Google Sheet</>
+                )}
+            </button>
         </div>
       </div>
     </div>
   );
 };
-
-const ResultRow = ({ label, value, highlight = false, isNegative = false }: { label: string, value: string, highlight?: boolean, isNegative?: boolean }) => (
-  <div className="flex justify-between items-center">
-    <span className="text-slate-600 text-xs">{label}</span>
-    <span className={`font-mono font-bold ${isNegative ? 'text-red-500' : highlight ? 'text-xl text-medical-600' : 'text-slate-800'}`}>
-      {value}
-    </span>
-  </div>
-);

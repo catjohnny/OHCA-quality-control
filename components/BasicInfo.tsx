@@ -40,7 +40,8 @@ export const BasicInfo: React.FC<Props> = ({ info, onChange }) => {
             value={info.unit}
             onChange={handleUnitChange}
             required
-            error={!isUnitValid ? "請輸入1至3個中文字" : undefined}
+            error={!isUnitValid ? "格式錯誤：請輸入 1 至 3 個中文字" : undefined}
+            pattern="[\u4e00-\u9fa5]{1,3}"
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -63,7 +64,7 @@ export const BasicInfo: React.FC<Props> = ({ info, onChange }) => {
         </div>
       </div>
 
-      {/* Scenario Data (Moved from Personnel) */}
+      {/* Scenario Data */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
         <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-2">案件情境</h3>
         <InputGroup
@@ -84,7 +85,7 @@ export const BasicInfo: React.FC<Props> = ({ info, onChange }) => {
         />
       </div>
 
-      {/* Personnel Data (Moved from Personnel) */}
+      {/* Personnel Data */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
         <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-2">出勤人員</h3>
         <div className="grid grid-cols-2 gap-4">
