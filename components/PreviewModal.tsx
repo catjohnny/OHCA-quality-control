@@ -2,8 +2,10 @@
 import React, { useMemo, useState } from 'react';
 import { AppState, TimeRecord, InterruptionItem } from '../types';
 import { calculateCorrectedAedTime, formatTimeDisplay } from '../services/timeUtils';
+import { TIME_FIELD_LABELS } from '../constants';
 
 const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbwb0A9Qu0nH47yxFHFouO7rS09SaBHhOurQT4GUj65hacafPmjkou2UAstpbbnzcukisg/exec"; 
+const GOOGLE_SHEET_URL: string = "https://docs.google.com/spreadsheets/d/1DxjxcX5eklxkuXsQwRphw1z_eT8AOgD9OJavBCpjfcM/edit?gid=0#gid=0";
 
 interface Props {
   data: AppState;
@@ -15,6 +17,73 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // --- Validation Logic ---
+  const missingFields = useMemo(() => {
+    const missing: string[] = [];
+    const { basicInfo, technicalInfo, timeRecords } = data;
+
+    // 1. Basic Info Validation
+    if (!basicInfo.reviewer) missing.push("基本資料: 審核者姓名");
+    if (!basicInfo.battalion) missing.push("基本資料: 大隊別");
+    if (!basicInfo.unit) missing.push("基本資料: 分隊");
+    if (!basicInfo.caseId) missing.push("基本資料: 案件編號");
+    if (!basicInfo.date) missing.push("基本資料: 案件發生日期");
+    if (!basicInfo.ohcaType) missing.push("基本資料: OHCA 類型");
+    if (!basicInfo.notificationTime) missing.push("基本資料: 發現/通報時機");
+    if (!basicInfo.member1) missing.push("基本資料: 人員 1");
+    if (!basicInfo.member2) missing.push("基本資料: 人員 2");
+
+    // 2. Technical Info Validation
+    if (!technicalInfo.aedPadCorrect) missing.push("處置認列: AED 貼片位置");
+    if (!technicalInfo.checkPulse) missing.push("處置認列: 檢查頸動脈");
+    if (!technicalInfo.useCompressor) missing.push("處置認列: 壓胸機有無使用");
+    if (!technicalInfo.initialRhythm) missing.push("處置認列: AED 初始心律");
+    // endoAttempts is number (0-5), default is 0 so it's always present
+    
+    // 3. Time Records Validation
+    const checkTime = (key: keyof TimeRecord, label: string) => {
+        const val = timeRecords[key];
+        if (typeof val === 'string') {
+            if (!val) missing.push(`時間紀錄: ${label}`);
+        } else {
+            // For EMT objects, check if at least one EMT has a value
+            if (!val.emt1 && !val.emt2 && !val.emt3) missing.push(`時間紀錄: ${label}`);
+        }
+    };
+
+    const checkConditionalTime = (key: keyof TimeRecord, label: string) => {
+        const val = timeRecords[key] as any;
+        // Check if N/A is selected OR if any value is present
+        const isNA = val.emt1 === 'N/A' || val.emt2 === 'N/A' || val.emt3 === 'N/A';
+        const hasValue = val.emt1 || val.emt2 || val.emt3;
+        
+        if (!isNA && !hasValue) {
+            missing.push(`時間紀錄: ${label}`);
+        }
+    };
+
+    // Required fields
+    checkTime('found', '發現患者');
+    checkTime('contact', '接觸患者');
+    checkTime('ohcaJudgment', '判斷 OHCA');
+    checkTime('cprStart', 'CPR 開始');
+    checkTime('powerOn', 'Power ON');
+    checkTime('padsOn', '貼上貼片');
+    checkTime('firstMed', '第一次給藥');
+    checkTime('aedOff', 'AED 關機');
+
+    // Conditional fields (Can be N/A)
+    checkConditionalTime('firstVentilation', '第一次給氣');
+    checkConditionalTime('mcprSetup', 'MCPR 架設');
+    checkConditionalTime('airway', '呼吸道建立時間');
+
+    return missing;
+  }, [data]);
+
+  const isValid = missingFields.length === 0;
+
+  // --- Calculations ---
 
   // Helper for 4-digit MMSS time calc
   const calculateMMSSSeconds = (mmss: string) => {
@@ -137,6 +206,8 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
 
   // Generate payload for Google Sheet
   const handleSubmit = async () => {
+    if (!isValid) return;
+
     setIsSubmitting(true);
     
     // Formatting helper
@@ -262,17 +333,12 @@ ${data.basicInfo.memo || '無'}`;
       let displayValue = '--';
       let textClass = "text-slate-800";
 
-      // Use the new formatter for numeric values (metrics)
-      // Check if it's a numeric metric that needs duration formatting
       const isDurationMetric = (typeof value === 'number');
 
       if (typeof value === 'string') {
           displayValue = value; 
           if (value.includes('未') || value.includes('N/A')) textClass = "text-slate-400 font-normal";
       } else if (value !== null) {
-          // If it's a duration metric, format it. If it's pure count/percentage (like CCF logic above already converts to string), handle accordingly.
-          // In this component context, numeric values passed to this function are mostly durations.
-          // Note: unit is passed as '秒' but formatting might change it.
           displayValue = formatDurationDisplay(value);
           if (value < 0) {
               textClass = "text-red-600 font-bold";
@@ -287,8 +353,6 @@ ${data.basicInfo.memo || '無'}`;
             </div>
             <span className={`font-mono text-lg ${textClass}`}>
                 {displayValue} 
-                {/* Only show unit if it wasn't formatted to XX分XX秒 (which contains unit) AND is a number. 
-                    However, formatDurationDisplay returns string with units. So we hide this extra unit if formatted. */}
                 {typeof value === 'number' && !displayValue.includes('分') && !displayValue.includes('秒') && <span className="text-xs text-slate-400 font-sans">{unit}</span>}
             </span>
         </div>
@@ -312,6 +376,14 @@ ${data.basicInfo.memo || '無'}`;
                     >
                         <i className="fas fa-copy"></i> 複製品管成果文字
                     </button>
+                    <a 
+                        href={GOOGLE_SHEET_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-colors shadow-lg flex items-center justify-center gap-2"
+                    >
+                        <i className="fas fa-table"></i> 前往資料庫
+                    </a>
                     <button 
                         onClick={() => { onClose(); onSubmit(); }}
                         className="w-full py-3 bg-white border border-slate-300 text-slate-600 rounded-lg font-bold hover:bg-slate-50 transition-colors"
@@ -340,6 +412,21 @@ ${data.basicInfo.memo || '無'}`;
 
         <div className="p-6 space-y-6">
             
+            {/* Missing Fields Warning */}
+            {!isValid && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-center text-red-800 font-bold mb-2">
+                        <i className="fas fa-exclamation-circle mr-2"></i>
+                        尚有必填欄位未完成
+                    </div>
+                    <ul className="list-disc list-inside text-sm text-red-600 space-y-1">
+                        {missingFields.map((field, idx) => (
+                            <li key={idx}>{field}</li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
             {/* Time Metrics */}
             <div className="space-y-1">
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">時效指標</h3>
@@ -398,9 +485,11 @@ ${data.basicInfo.memo || '無'}`;
             </button>
             <button 
                 onClick={handleSubmit}
-                disabled={isSubmitting}
-                className={`flex-[2] py-3 rounded-xl font-bold text-white shadow-lg transition-all transform active:scale-95 flex justify-center items-center
-                    ${isSubmitting ? 'bg-slate-400 cursor-wait' : 'bg-gradient-to-r from-medical-600 to-medical-500 hover:shadow-medical-200'}`}
+                disabled={isSubmitting || !isValid}
+                className={`flex-[2] py-3 rounded-xl font-bold text-white shadow-lg transition-all transform flex justify-center items-center
+                    ${(isSubmitting || !isValid)
+                        ? 'bg-slate-300 cursor-not-allowed' 
+                        : 'bg-gradient-to-r from-medical-600 to-medical-500 hover:shadow-medical-200 active:scale-95'}`}
             >
                 {isSubmitting ? (
                     <><i className="fas fa-spinner fa-spin mr-2"></i> 上傳中...</>
