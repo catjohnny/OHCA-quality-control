@@ -197,7 +197,10 @@ const App: React.FC = () => {
                 className="w-8 h-8 object-contain"
             />
             <div className="flex flex-col">
-                <h1 className="font-bold text-lg text-slate-900">新北 OHCA 品管系統</h1>
+                <h1 className="font-bold text-lg text-slate-900 leading-tight">
+                    <div>新北 OHCA</div>
+                    <div>品管系統</div>
+                </h1>
                 <span className="text-[10px] text-slate-400 font-mono">Ver.20251203</span>
             </div>
         </div>
