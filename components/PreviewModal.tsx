@@ -4,7 +4,7 @@ import { AppState, TimeRecord, InterruptionItem } from '../types';
 import { calculateCorrectedAedTime, formatTimeDisplay } from '../services/timeUtils';
 import { TIME_FIELD_LABELS } from '../constants';
 
-const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbwb0A9Qu0nH47yxFHFouO7rS09SaBHhOurQT4GUj65hacafPmjkou2UAstpbbnzcukisg/exec"; 
+const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbzr7q5aJwsBjzpPwm6qtIVBM95K5uEsTDdXcqWwG2PTjNhQXDx5_ScwQHkfJHbCMrvkxA/exec"; 
 const GOOGLE_SHEET_URL: string = "https://docs.google.com/spreadsheets/d/1DxjxcX5eklxkuXsQwRphw1z_eT8AOgD9OJavBCpjfcM/edit?gid=0#gid=0";
 
 interface Props {
