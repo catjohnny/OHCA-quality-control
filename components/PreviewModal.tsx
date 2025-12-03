@@ -55,46 +55,64 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
   const interruptionPads = calculateInterruption(data.interruptionRecords.beforePads);
   const interruptionMcpr = calculateInterruption(data.interruptionRecords.beforeMcpr);
 
-  const diffSeconds = (d1: Date | null, d2: Date | null) => {
-    if (!d1 || !d2) return null;
-    return Math.floor((d1.getTime() - d2.getTime()) / 1000);
+  // 智慧型時間差計算：處理跨日問題
+  const getSafeDuration = (start: Date | null, end: Date | null): number | null => {
+    if (!start || !end) return null;
+    let diff = (end.getTime() - start.getTime()) / 1000;
+    
+    // 若時間差小於 -12 小時 (-43200秒)，極大機率為跨日案件但未調整日期 (例如 23:59 -> 00:01)
+    // 此時自動補正 +24 小時 (+86400秒)
+    if (diff < -43200) {
+        diff += 86400;
+    }
+    
+    return Math.floor(diff);
   };
 
-  // Base metrics
-  const cprDelay = diffSeconds(times.cpr, times.ohca);
-  const padsDelay = diffSeconds(times.pads, times.ohca);
-  const ventDelay = diffSeconds(times.vent, times.ohca);
-  const bvmTime = diffSeconds(times.vent, times.ohca); 
-  const medDelay = diffSeconds(times.med, times.ohca);
+  // Base metrics (改用 getSafeDuration 以支援跨日)
+  const cprDelay = getSafeDuration(times.ohca, times.cpr);
+  const padsDelay = getSafeDuration(times.ohca, times.pads);
+  const ventDelay = getSafeDuration(times.ohca, times.vent);
+  const bvmTime = getSafeDuration(times.ohca, times.vent); 
+  const medDelay = getSafeDuration(times.ohca, times.med);
 
   // New Metrics Calculations
-  const timeInCompPreAed = (times.pads && times.ohca) 
-    ? (times.pads.getTime() - times.ohca.getTime()) / 1000 - interruptionPads 
+  // 1. 計算 OHCA -> Pads 的總時間 (含跨日修正)
+  const durationOhcaToPads = getSafeDuration(times.ohca, times.pads);
+  const timeInCompPreAed = (durationOhcaToPads !== null) 
+    ? durationOhcaToPads - interruptionPads 
     : null;
 
-  const timeInCompPreMcpr = (times.mcpr && times.pads)
-    ? (times.mcpr.getTime() - times.pads.getTime()) / 1000 - interruptionMcpr
+  // 2. 計算 Pads -> MCPR 的總時間 (含跨日修正)
+  const durationPadsToMcpr = getSafeDuration(times.pads, times.mcpr);
+  const timeInCompPreMcpr = (durationPadsToMcpr !== null)
+    ? durationPadsToMcpr - interruptionMcpr
     : null;
 
-  const timeInCompPostMcpr = (times.aedOff && times.mcpr)
-    ? (times.aedOff.getTime() - times.mcpr.getTime()) / 1000
-    : null;
+  // 3. 計算 MCPR -> AED Off 的總時間 (含跨日修正)
+  const timeInCompPostMcpr = getSafeDuration(times.mcpr, times.aedOff);
 
+  // 計算徒手 CCF
   let manualCCF = 'N/A';
-  if (timeInCompPreAed !== null && timeInCompPreMcpr !== null && times.mcpr && times.ohca) {
-    const totalComp = timeInCompPreAed + timeInCompPreMcpr;
-    const totalDuration = (times.mcpr.getTime() - times.ohca.getTime()) / 1000;
-    if (totalDuration > 0) {
-        manualCCF = ((totalComp / totalDuration) * 100).toFixed(1) + '%';
+  // 分母：OHCA 到 MCPR 架設的總時間 (含跨日修正)
+  const totalDurationManual = getSafeDuration(times.ohca, times.mcpr);
+
+  if (timeInCompPreAed !== null && timeInCompPreMcpr !== null && totalDurationManual !== null) {
+    const totalComp = timeInCompPreAed + timeInCompPreMcpr; // 分子：總按壓時間
+    if (totalDurationManual > 0) {
+        manualCCF = ((totalComp / totalDurationManual) * 100).toFixed(1) + '%';
     }
   }
 
+  // 計算整體 CCF
   let overallCCF = 'N/A';
-  if (timeInCompPreMcpr !== null && timeInCompPostMcpr !== null && times.aedOff && times.pads) {
+  // 分母：Pads On 到 AED Off 的總時間 (含跨日修正)
+  const totalDurationOverall = getSafeDuration(times.pads, times.aedOff);
+
+  if (timeInCompPreMcpr !== null && timeInCompPostMcpr !== null && totalDurationOverall !== null) {
     const totalComp = timeInCompPreMcpr + timeInCompPostMcpr;
-    const totalDuration = (times.aedOff.getTime() - times.pads.getTime()) / 1000;
-    if (totalDuration > 0) {
-        overallCCF = ((totalComp / totalDuration) * 100).toFixed(1) + '%';
+    if (totalDurationOverall > 0) {
+        overallCCF = ((totalComp / totalDurationOverall) * 100).toFixed(1) + '%';
     }
   }
 
@@ -113,6 +131,7 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
     ? Math.abs(times.rosc.getTime() - times.aedOff.getTime()) > 1000
     : false;
   
+  // 檢查是否有負值 (小於 0 且大於 -12小時 的會被保留為負值，視為順序錯誤)
   const hasNegativeValues = [cprDelay, padsDelay, ventDelay, medDelay, timeInCompPreAed, timeInCompPreMcpr, timeInCompPostMcpr]
     .some(v => v !== null && v < 0);
 
@@ -318,7 +337,7 @@ ${data.basicInfo.memo || '無'}
             {hasNegativeValues && (
                 <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">
                     <i className="fas fa-exclamation-circle mr-2"></i>
-                    偵測到負值時間差，請檢查輸入時間。
+                    偵測到負值時間差，請檢查輸入時間順序。
                 </div>
             )}
             {missingFields.length > 0 && (
