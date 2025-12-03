@@ -1,8 +1,10 @@
-
 import React, { useMemo, useState } from 'react';
 import { AppState, TimeRecord, InterruptionItem } from '../types';
-import { calculateCorrectedAedTime } from '../services/timeUtils';
+import { calculateCorrectedAedTime, formatTimeDisplay } from '../services/timeUtils';
 import { REQUIRED_TIME_FIELDS, TIME_FIELD_LABELS } from '../constants';
+
+// ★★★ 已更新您的 Google Apps Script 網址 ★★★
+const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbyZ3zWuYygcqT-T7DdKXLHGYMeNfVf3T6G41IaWpdi6a_VfUCzayJtiWlOa7GvkBQwl5Q/exec"; 
 
 interface Props {
   data: AppState;
@@ -13,6 +15,7 @@ interface Props {
 export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Helper for 4-digit MMSS time calc
   const calculateMMSSSeconds = (mmss: string) => {
@@ -61,7 +64,7 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
   const cprDelay = diffSeconds(times.cpr, times.ohca);
   const padsDelay = diffSeconds(times.pads, times.ohca);
   const ventDelay = diffSeconds(times.vent, times.ohca);
-  const bvmTime = diffSeconds(times.vent, times.ohca); // Defined as same in prompt
+  const bvmTime = diffSeconds(times.vent, times.ohca); 
   const medDelay = diffSeconds(times.med, times.ohca);
 
   // New Metrics Calculations
@@ -122,16 +125,82 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
   const missingFieldNames = missingFields.map(k => TIME_FIELD_LABELS[k] || k).join('、');
   const canSubmit = !roscMismatch && !hasNegativeValues && missingFields.length === 0;
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    if (GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_SCRIPT_URL_HERE" || !GOOGLE_SCRIPT_URL) {
+        alert("尚未設定 Google Script 網址，請聯繫管理員更新程式碼。");
+        return;
+    }
+
     setIsSubmitting(true);
-    // Simulate upload to Google Sheet
-    setTimeout(() => {
-        // Open the google sheet URL (or simulate it)
-        window.open('https://docs.google.com/spreadsheets/d/1DxjxcX5eklxkuXsQwRphw1z_eT8AOgD9OJavBCpjfcM/edit?gid=0#gid=0', '_blank');
+    setErrorMessage('');
+
+    // Prepare Payload
+    const crew = [data.basicInfo.member1, data.basicInfo.member2, data.basicInfo.member3, data.basicInfo.member4, data.basicInfo.member5, data.basicInfo.member6]
+        .filter(Boolean).join('、');
+    
+    // Format times for sheet (HH:mm:ss)
+    const fmtT = (d: Date | null) => d ? formatTimeDisplay(d.toISOString()) : '';
+
+    const payload = {
+        date: data.basicInfo.date,
+        caseId: data.basicInfo.caseId,
+        unit: data.basicInfo.unit,
+        reviewer: data.basicInfo.reviewer,
+        crew: crew,
+        ohcaType: data.basicInfo.ohcaType,
+        notification: data.basicInfo.notificationTime,
+        rhythm: data.technicalInfo.initialRhythm,
+        compressor: data.technicalInfo.useCompressor,
+        endoAttempts: data.technicalInfo.endoAttempts,
+        airway: data.technicalInfo.airwayDevice,
+        etco2: data.technicalInfo.etco2Used === 'Yes' ? data.technicalInfo.etco2Value : data.technicalInfo.etco2Used,
+        pulse: data.technicalInfo.checkPulse,
+        padsCorrect: data.technicalInfo.aedPadCorrect,
+        ivOp: data.technicalInfo.ivOperator,
+        ioOp: data.technicalInfo.ioOperator,
+        endoOp: data.technicalInfo.endoOperator,
+        leader: data.technicalInfo.teamLeader,
+        
+        // Times
+        t_ohca: fmtT(times.ohca),
+        t_cpr: fmtT(times.cpr),
+        t_pads: fmtT(times.pads),
+        t_vent: fmtT(times.vent),
+        t_mcpr: fmtT(times.mcpr),
+        t_med: fmtT(times.med),
+        t_off: fmtT(times.aedOff),
+        t_rosc: fmtT(times.rosc),
+        
+        // Metrics
+        int_pads: interruptionPads,
+        int_mcpr: interruptionMcpr,
+        ccf_manual: manualCCF,
+        ccf_overall: overallCCF,
+        
+        memo: data.basicInfo.memo
+    };
+
+    try {
+        // Use no-cors mode for simple submission to GAS Web App
+        // NOTE: In no-cors mode, we cannot read the response, so we assume success if no network error.
+        await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors', 
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
         setIsSubmitting(false);
         setIsSuccess(true);
-        // onSubmit(); // Call parent submit which might reset data if needed
-    }, 1500);
+        if (onSubmit) onSubmit();
+
+    } catch (error) {
+        console.error("Submission Error:", error);
+        setErrorMessage("連線失敗，請檢查網路或稍後再試。");
+        setIsSubmitting(false);
+    }
   };
 
   const getCopyText = () => {
@@ -259,6 +328,12 @@ ${data.basicInfo.memo || '無'}
                     {missingFieldNames}
                 </div>
             )}
+            {errorMessage && (
+                 <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">
+                    <i className="fas fa-exclamation-circle mr-2"></i>
+                    {errorMessage}
+                </div>
+            )}
           </div>
         </div>
 
@@ -280,7 +355,7 @@ ${data.basicInfo.memo || '無'}
           >
             {isSubmitting ? (
                 <>
-                <i className="fas fa-spinner fa-spin mr-2"></i> 處理中...
+                <i className="fas fa-spinner fa-spin mr-2"></i> 資料上傳中...
                 </>
             ) : (
                 '確認無誤送出'
