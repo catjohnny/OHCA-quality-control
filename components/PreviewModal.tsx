@@ -265,6 +265,9 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
     };
 
     try {
+        // Debug: Ensure payload is correct (battalion should be in basicInfo)
+        console.log("Submitting payload to Google Sheet:", payload);
+
         await fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
