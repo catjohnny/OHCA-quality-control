@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { AppState, TimeRecord, InterruptionItem } from '../types';
 import { calculateCorrectedAedTime, formatTimeDisplay } from '../services/timeUtils';
 
-const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbzWOoHHess2wCn32DOSR_2EchBjVFKkWtd0XrnO-M_jNmzgvRJVWG0PWLO_GshdWCGiGA/exec"; 
+const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbwb0A9Qu0nH47yxFHFouO7rS09SaBHhOurQT4GUj65hacafPmjkou2UAstpbbnzcukisg/exec"; 
 const GOOGLE_SHEET_URL: string = "https://docs.google.com/spreadsheets/d/1DxjxcX5eklxkuXsQwRphw1z_eT8AOgD9OJavBCpjfcM/edit?gid=0#gid=0";
 
 interface Props {
@@ -151,39 +151,41 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
   const airwayTime = isAirwayNA ? null : getSafeDuration(times.ohca, times.airway);
 
   // CCF 計算邏輯
-  // 1. 計算 OHCA -> Pads 的總時間
+  // 1. 計算 OHCA -> Pads 的總時間 (保留給 Google Sheet 原始欄位計算)
   const durationOhcaToPads = getSafeDuration(times.ohca, times.pads);
-  // Time in Comp (Pre-AED): OHCA->Pads時間 - 貼片前中斷
   const timeInCompPreAed = (durationOhcaToPads !== null) 
     ? durationOhcaToPads - interruptionPads 
     : null;
 
-  // 2. 計算 Pads -> MCPR (或 AED Off) 的總時間
-  // 若 MCPR 未執行(N/A)，則計算至 AED 關機
+  // 2. 計算 Pads -> MCPR (或 AED Off) 的總時間 (保留給 Google Sheet 原始欄位計算)
   const durationPadsToMcpr = isMcprNA 
      ? getSafeDuration(times.pads, times.aedOff) 
      : getSafeDuration(times.pads, times.mcpr);
 
-  // Time in Comp (Pre-MCPR): Pads->MCPR(or Off)時間 - MCPR前中斷
   const timeInCompPreMcpr = (durationPadsToMcpr !== null)
     ? durationPadsToMcpr - interruptionMcpr
     : null;
 
-  // 3. 計算總 CCF
-  let manualCCF = 'N/A';
-  // let totalCompTimeStr = '無法計算'; // Unused
+  // 3. 計算整體 CCF (依據新公式修正)
+  let overallCCF = 'N/A';
 
-  // 分母：總持續時間 (OHCA -> MCPR 或 OHCA -> AED Off)
-  const totalDuration = isMcprNA
-    ? getSafeDuration(times.ohca, times.aedOff)
-    : getSafeDuration(times.ohca, times.mcpr);
+  // 分母：總持續時間 (AED Off - OHCA)，無論有無 MCPR，皆以 AED 關機為終點
+  const totalDurationForCCF = getSafeDuration(times.ohca, times.aedOff);
 
-  if (timeInCompPreAed !== null && timeInCompPreMcpr !== null && totalDuration !== null && totalDuration > 0) {
-      const totalComp = timeInCompPreAed + timeInCompPreMcpr;
-      // totalCompTimeStr = `${Math.floor(totalComp)} 秒`;
-      manualCCF = ((totalComp / totalDuration) * 100).toFixed(1) + '%';
-  } else if (totalDuration !== null && totalDuration <= 0) {
-      manualCCF = '時間錯誤'; // 分母非正數
+  if (totalDurationForCCF !== null && totalDurationForCCF > 0) {
+      let totalCompSeconds = 0;
+
+      if (isMcprNA) {
+          // 無 MCPR：分子 = (AED Off - OHCA) - interruptionPads
+          totalCompSeconds = totalDurationForCCF - interruptionPads;
+      } else {
+          // 有 MCPR：分子 = (AED Off - OHCA) - interruptionPads - interruptionMcpr
+          totalCompSeconds = totalDurationForCCF - interruptionPads - interruptionMcpr;
+      }
+
+      overallCCF = ((totalCompSeconds / totalDurationForCCF) * 100).toFixed(1) + '%';
+  } else if (totalDurationForCCF !== null && totalDurationForCCF <= 0) {
+      overallCCF = '時間錯誤'; // 分母非正數
   }
 
   // Format Helper for Display (MM:SS)
@@ -250,7 +252,7 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
             bvmTime: bvmTime !== null ? bvmTime : (isVentNA ? '未執行 BVM' : ''),
             airwayTime: airwayTime !== null ? airwayTime : (isAirwayNA ? '未建立輔助呼吸道' : ''),
             medDelay: medDelay !== null ? medDelay : '',
-            ccf: manualCCF,
+            ccf: overallCCF,
             preAedComp: timeInCompPreAed,
             preMcprComp: timeInCompPreMcpr,
             isMcprNA: isMcprNA,
@@ -308,8 +310,7 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
 MCPR前中斷：${formatDurationDisplay(interruptionMcpr)}
 
 📊 CCF 數據：
-徒手 CCF：${manualCCF}
-整體 CCF：${manualCCF}
+整體 CCF：${overallCCF}
 
 🛠️ 處置認列：
 AED 貼片位置是否正確：${data.technicalInfo.aedPadCorrect || '--'}
@@ -440,8 +441,7 @@ ${data.basicInfo.memo || '無'}`;
             {/* CCF */}
             {renderSectionHeader('CCF 數據', 'fa-chart-pie')}
             <div className="bg-white rounded-lg border border-slate-200 px-4 py-1">
-                {renderSimpleRow('徒手 CCF', manualCCF)}
-                {renderSimpleRow('整體 CCF', manualCCF)}
+                {renderSimpleRow('整體 CCF', overallCCF)}
             </div>
 
             {/* Technical */}
