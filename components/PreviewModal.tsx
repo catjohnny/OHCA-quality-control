@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { AppState, TimeRecord, InterruptionItem } from '../types';
 import { calculateCorrectedAedTime, formatTimeDisplay } from '../services/timeUtils';
 
-const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbwb0A9Qu0nH47yxFHFouO7rS09SaBHhOurQT4GUj65hacafPmjkou2UAstpbbnzcukisg/exec"; 
+const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbzWOoHHess2wCn32DOSR_2EchBjVFKkWtd0XrnO-M_jNmzgvRJVWG0PWLO_GshdWCGiGA/exec"; 
 const GOOGLE_SHEET_URL: string = "https://docs.google.com/spreadsheets/d/1DxjxcX5eklxkuXsQwRphw1z_eT8AOgD9OJavBCpjfcM/edit?gid=0#gid=0";
 
 interface Props {
