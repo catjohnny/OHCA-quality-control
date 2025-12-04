@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { AppState, TimeRecord, InterruptionItem } from '../types';
 import { calculateCorrectedAedTime, formatTimeDisplay } from '../services/timeUtils';
 
-const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbwb0A9Qu0nH47yxFHFouO7rS09SaBHhOurQT4GUj65hacafPmjkou2UAstpbbnzcukisg/exec"; 
+const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbzWOoHHess2wCn32DOSR_2EchBjVFKkWtd0XrnO-M_jNmzgvRJVWG0PWLO_GshdWCGiGA/exec"; 
 const GOOGLE_SHEET_URL: string = "https://docs.google.com/spreadsheets/d/1DxjxcX5eklxkuXsQwRphw1z_eT8AOgD9OJavBCpjfcM/edit?gid=0#gid=0";
 
 interface Props {
@@ -223,7 +223,11 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
     };
 
     const payload = {
-        basicInfo: data.basicInfo,
+        // Explicitly construct basicInfo to ensure battalion is included
+        basicInfo: {
+            ...data.basicInfo,
+            battalion: data.basicInfo.battalion || ''
+        },
         rawTimes: {
             found: rawFmt(data.timeRecords.found),
             contact: rawFmt(data.timeRecords.contact),
@@ -267,7 +271,7 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
     };
 
     try {
-        // Debug: Ensure payload is correct (battalion should be in basicInfo)
+        // Debug: Ensure payload is correct
         console.log("Submitting payload to Google Sheet:", payload);
 
         await fetch(GOOGLE_SCRIPT_URL, {
@@ -278,7 +282,6 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
         });
         setIsSubmitting(false);
         setIsSuccess(true);
-        // Do not close immediately, wait for user choice
     } catch (error) {
         setIsSubmitting(false);
         setErrorMessage('上傳失敗，請檢查網路連線');
@@ -294,6 +297,7 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
     // Construct the text template
     const text = `📋 【新北 OHCA 品管成果】
 
+單位：${data.basicInfo.battalion} ${data.basicInfo.unit}
 👤 出勤人員：${members}
 
 💓 AED 初始心律：${data.technicalInfo.initialRhythm || '未記錄'}
@@ -388,7 +392,6 @@ ${data.basicInfo.memo || '無'}`;
       {/* 
          Revised Modal Container: Flex Column with independent scrolling body.
          max-h-[90vh] ensures it doesn't overflow screen.
-         flex-col + overflow-hidden on parent contains the layout.
       */}
       <div className="bg-white w-full max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
         
@@ -420,6 +423,16 @@ ${data.basicInfo.memo || '無'}`;
                     </ul>
                 </div>
             )}
+
+            {/* Basic Info Preview (New) */}
+            {renderSectionHeader('基本資料', 'fa-info-circle')}
+            <div className="bg-white rounded-lg border border-slate-200 px-4 py-1">
+                {renderSimpleRow('案件編號', data.basicInfo.caseId)}
+                {renderSimpleRow('日期', data.basicInfo.date)}
+                {renderSimpleRow('大隊別', data.basicInfo.battalion)}
+                {renderSimpleRow('分隊', data.basicInfo.unit)}
+                {renderSimpleRow('審核者', data.basicInfo.reviewer)}
+            </div>
 
             {/* Time Metrics */}
             {renderSectionHeader('時間指標', 'fa-stopwatch')}
