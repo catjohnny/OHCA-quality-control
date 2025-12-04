@@ -205,7 +205,7 @@ const App: React.FC = () => {
                     <div>新北 OHCA</div>
                     <div>品管系統</div>
                 </h1>
-                <span className="text-[10px] text-slate-400 font-mono">Ver.20251203</span>
+                <span className="text-[10px] text-slate-400 font-mono">Ver.20251203.1</span>
             </div>
         </div>
         <div className="flex gap-2">
