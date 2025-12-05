@@ -16,9 +16,31 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // --- Calculations for Times (Moved up for validation) ---
+  const times = useMemo(() => {
+    const getT = (key: keyof TimeRecord) => 
+      calculateCorrectedAedTime(key, data.timeRecords[key], data.calibration);
+    
+    return {
+      found: getT('found'),
+      contact: getT('contact'),
+      ohca: getT('ohcaJudgment'),
+      cpr: getT('cprStart'),
+      pads: getT('padsOn'),
+      vent: getT('firstVentilation'),
+      mcpr: getT('mcprSetup'),
+      med: getT('firstMed'),
+      airway: getT('airway'),
+      aedOff: getT('aedOff'),
+      aedOn: getT('powerOn'), 
+      rosc: getT('rosc'),
+    };
+  }, [data]);
+
   // --- Validation Logic ---
-  const missingFields = useMemo(() => {
+  const { missingFields, logicErrors } = useMemo(() => {
     const missing: string[] = [];
+    const logic: string[] = [];
     const { basicInfo, technicalInfo, timeRecords } = data;
 
     // 1. Basic Info Validation
@@ -39,7 +61,7 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
     if (!technicalInfo.initialRhythm) missing.push("處置認列: AED 初始心律");
     // endoAttempts is number (0-5), default is 0 so it's always present
     
-    // 3. Time Records Validation
+    // 3. Time Records Required Check
     const checkTime = (key: keyof TimeRecord, label: string) => {
         const val = timeRecords[key];
         if (typeof val === 'string') {
@@ -76,12 +98,40 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
     checkConditionalTime('mcprSetup', 'MCPR 架設');
     checkConditionalTime('airway', '呼吸道建立時間');
 
-    return missing;
-  }, [data]);
+    // 4. Time Logic Validation (Chronological Order)
+    const checkOrder = (earlier: Date | null, later: Date | null, labelEarlier: string, labelLater: string) => {
+        // Only check if both times exist. If one is missing, it's caught by "missing fields" or ignored if optional.
+        if (earlier && later) {
+            if (later.getTime() < earlier.getTime()) {
+                 logic.push(`時間順序錯誤：[${labelLater}] 不能早於 [${labelEarlier}]`);
+            }
+        }
+    };
 
-  const isValid = missingFields.length === 0;
+    // Sequence based on TimeRecording.tsx
+    checkOrder(times.found, times.contact, '發現患者', '接觸患者');
+    checkOrder(times.contact, times.ohca, '接觸患者', '判斷OHCA');
+    checkOrder(times.ohca, times.cpr, '判斷OHCA', 'CPR開始');
+    checkOrder(times.ohca, times.aedOn, '判斷OHCA', 'Power ON');
+    checkOrder(times.aedOn, times.pads, 'Power ON', '貼上貼片');
+    checkOrder(times.ohca, times.vent, '判斷OHCA', '第一次給氣');
+    checkOrder(times.cpr, times.mcpr, 'CPR開始', 'MCPR架設');
+    checkOrder(times.ohca, times.med, '判斷OHCA', '第一次給藥');
+    checkOrder(times.ohca, times.airway, '判斷OHCA', '呼吸道建立');
+    
+    // AED Off Logic: Must be after MCPR if MCPR exists, otherwise after Pads
+    if (times.mcpr) {
+        checkOrder(times.mcpr, times.aedOff, 'MCPR架設', 'AED關機');
+    } else {
+        checkOrder(times.pads, times.aedOff, '貼上貼片', 'AED關機');
+    }
 
-  // --- Calculations ---
+    return { missingFields: missing, logicErrors: logic };
+  }, [data, times]);
+
+  const isValid = missingFields.length === 0 && logicErrors.length === 0;
+
+  // --- Calculations (Rest of them) ---
 
   // Helper for 4-digit MMSS time calc
   const calculateMMSSSeconds = (mmss: string) => {
@@ -100,24 +150,6 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
       return acc + diff;
     }, 0);
   };
-
-  const times = useMemo(() => {
-    const getT = (key: keyof TimeRecord) => 
-      calculateCorrectedAedTime(key, data.timeRecords[key], data.calibration);
-    
-    return {
-      ohca: getT('ohcaJudgment'),
-      cpr: getT('cprStart'),
-      pads: getT('padsOn'),
-      vent: getT('firstVentilation'),
-      mcpr: getT('mcprSetup'),
-      med: getT('firstMed'),
-      airway: getT('airway'),
-      aedOff: getT('aedOff'),
-      aedOn: getT('powerOn'), 
-      rosc: getT('rosc'),
-    };
-  }, [data]);
 
   const interruptionPads = calculateInterruption(data.interruptionRecords.beforePads);
   const interruptionMcpr = calculateInterruption(data.interruptionRecords.beforeMcpr);
@@ -426,22 +458,37 @@ ${data.basicInfo.memo || '無'}`;
         {/* Body: Scrollable area */}
         <div className="p-6 space-y-2 overflow-y-auto flex-1 scroll-smooth">
             
-            {/* Missing Fields Warning */}
+            {/* Missing Fields or Logic Errors Warning */}
             {!isValid && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
                     <div className="flex items-center text-red-800 font-bold mb-2">
-                        <i className="fas fa-exclamation-circle mr-2"></i>
-                        尚有必填欄位未完成
+                        <i className="fas fa-exclamation-triangle mr-2"></i>
+                        請修正以下錯誤以繼續
                     </div>
-                    <ul className="list-disc list-inside text-sm text-red-600 space-y-1">
-                        {missingFields.map((field, idx) => (
-                            <li key={idx}>{field}</li>
-                        ))}
-                    </ul>
+                    {missingFields.length > 0 && (
+                        <div className="mb-2">
+                            <p className="text-xs font-bold text-red-700 mb-1">未填寫項目：</p>
+                            <ul className="list-disc list-inside text-sm text-red-600 space-y-1">
+                                {missingFields.map((field, idx) => (
+                                    <li key={`missing-${idx}`}>{field}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                    {logicErrors.length > 0 && (
+                        <div>
+                            <p className="text-xs font-bold text-red-700 mb-1">時間邏輯錯誤：</p>
+                            <ul className="list-disc list-inside text-sm text-red-600 space-y-1">
+                                {logicErrors.map((err, idx) => (
+                                    <li key={`logic-${idx}`}>{err}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                 </div>
             )}
 
-            {/* Basic Info Preview (New) */}
+            {/* Basic Info Preview */}
             {renderSectionHeader('基本資料', 'fa-info-circle')}
             <div className="bg-white rounded-lg border border-slate-200 px-4 py-1">
                 {renderSimpleRow('案件編號', data.basicInfo.caseId)}
@@ -505,10 +552,10 @@ ${data.basicInfo.memo || '無'}`;
             <button 
                 onClick={handleSubmit}
                 disabled={isSubmitting || !isValid}
-                className={`flex-[2] py-3 rounded-xl font-bold text-white shadow-lg transition-all transform flex justify-center items-center
+                className={`flex-[2] py-3 rounded-xl font-bold shadow-lg transition-all transform flex justify-center items-center
                     ${(isSubmitting || !isValid)
-                        ? 'bg-slate-300 cursor-not-allowed' 
-                        : 'bg-gradient-to-r from-medical-600 to-medical-500 hover:shadow-medical-200 active:scale-95'}`}
+                        ? 'bg-slate-400 text-white cursor-not-allowed shadow-none transform-none' 
+                        : 'bg-gradient-to-r from-medical-600 to-medical-500 text-white hover:shadow-medical-200 active:scale-95'}`}
             >
                 {isSubmitting ? (
                     <><i className="fas fa-spinner fa-spin mr-2"></i> 上傳中...</>
