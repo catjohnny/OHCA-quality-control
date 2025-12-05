@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { AppState, TimeRecord, InterruptionItem } from '../types';
 import { calculateCorrectedAedTime, formatTimeDisplay } from '../services/timeUtils';
 
-const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbzWOoHHess2wCn32DOSR_2EchBjVFKkWtd0XrnO-M_jNmzgvRJVWG0PWLO_GshdWCGiGA/exec"; 
+const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbxjVOpoXwPC2AwNv92pb5hhWNg6TCOwaa69R1JCKCqMJo-y9hYeYe92jd4omDR_VqgLkw/exec"; 
 const GOOGLE_SHEET_URL: string = "https://docs.google.com/spreadsheets/d/1DxjxcX5eklxkuXsQwRphw1z_eT8AOgD9OJavBCpjfcM/edit?gid=0#gid=0";
 
 interface Props {
@@ -235,6 +235,7 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
         const end = calculateMMSSSeconds(item.end);
         const duration = (end > start) ? end - start : 0;
         
+        // Ensure Reason1..15 and Duration1..15 are always strings
         detailedInterruptions[`reason${num}`] = item.reason || '';
         detailedInterruptions[`duration${num}`] = duration > 0 ? duration.toString() : '';
     });
@@ -290,9 +291,6 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
     };
 
     try {
-        // Debug: Ensure payload is correct
-        console.log("Submitting payload to Google Sheet:", payload);
-
         await fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
