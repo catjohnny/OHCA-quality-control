@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { AppState, TimeRecord, InterruptionItem } from '../types';
 import { calculateCorrectedAedTime, formatTimeDisplay } from '../services/timeUtils';
 
-const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbzWOoHHess2wCn32DOSR_2EchBjVFKkWtd0XrnO-M_jNmzgvRJVWG0PWLO_GshdWCGiGA/exec"; 
+const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbwb0A9Qu0nH47yxFHFouO7rS09SaBHhOurQT4GUj65hacafPmjkou2UAstpbbnzcukisg/exec"; 
 const GOOGLE_SHEET_URL: string = "https://docs.google.com/spreadsheets/d/1DxjxcX5eklxkuXsQwRphw1z_eT8AOgD9OJavBCpjfcM/edit?gid=0#gid=0";
 
 interface Props {
@@ -222,12 +222,31 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
         return vals.find(v => v && v !== 'N/A') || ''; // Return first non-empty, non-NA
     };
 
+    // Prepare detailed interruptions list (Flat structure: Reason 1, Duration 1, Reason 2, Duration 2...)
+    const flatInterruptions = [
+        ...data.interruptionRecords.beforePads,
+        ...data.interruptionRecords.beforeMcpr
+    ];
+
+    const detailedInterruptions: Record<string, string> = {};
+    flatInterruptions.forEach((item, index) => {
+        const num = index + 1; // 1-based index (1 to 15)
+        const start = calculateMMSSSeconds(item.start);
+        const end = calculateMMSSSeconds(item.end);
+        const duration = (end > start) ? end - start : 0;
+        
+        detailedInterruptions[`reason${num}`] = item.reason || '';
+        detailedInterruptions[`duration${num}`] = duration > 0 ? duration.toString() : '';
+    });
+
     const payload = {
         // Explicitly construct basicInfo to ensure battalion is included
         basicInfo: {
             ...data.basicInfo,
             battalion: data.basicInfo.battalion || ''
         },
+        // Insert detailed interruptions here so they are available for the sheet export
+        detailedInterruptions,
         rawTimes: {
             found: rawFmt(data.timeRecords.found),
             contact: rawFmt(data.timeRecords.contact),
