@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { AppState, TimeRecord, InterruptionItem } from '../types';
 import { calculateCorrectedAedTime, formatTimeDisplay } from '../services/timeUtils';
 
-const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbxjVOpoXwPC2AwNv92pb5hhWNg6TCOwaa69R1JCKCqMJo-y9hYeYe92jd4omDR_VqgLkw/exec"; 
+const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbyI1Z46ts7riwaD-8iT15Qz-PfdFTbLdibaqY6-T-7Lj5rr05Re5IYUz6DpcErJ89lsYA/exec"; 
 const GOOGLE_SHEET_URL: string = "https://docs.google.com/spreadsheets/d/1DxjxcX5eklxkuXsQwRphw1z_eT8AOgD9OJavBCpjfcM/edit?gid=0#gid=0";
 
 interface Props {
@@ -277,8 +277,8 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
             airwayTime: airwayTime !== null ? airwayTime : (isAirwayNA ? '未建立輔助呼吸道' : ''),
             medDelay: medDelay !== null ? medDelay : '',
             ccf: overallCCF,
-            preAedComp: timeInCompPreAed,
-            preMcprComp: timeInCompPreMcpr,
+            preAedComp: timeInCompPreAed !== null ? timeInCompPreAed : '',
+            preMcprComp: timeInCompPreMcpr !== null ? timeInCompPreMcpr : '',
             isMcprNA: isMcprNA,
             isVentNA: isVentNA,
             isAirwayNA: isAirwayNA
