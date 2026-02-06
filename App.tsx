@@ -19,10 +19,22 @@ const App: React.FC = () => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        
+        // Safety check for padsOn type migration (object -> string)
+        let safePadsOn = '';
+        if (parsed.timeRecords && typeof parsed.timeRecords.padsOn === 'string') {
+            safePadsOn = parsed.timeRecords.padsOn;
+        }
+
         // Merge with initial state to ensure new fields exist
         setData({
             ...INITIAL_STATE,
             ...parsed,
+            timeRecords: {
+                ...INITIAL_STATE.timeRecords,
+                ...parsed.timeRecords,
+                padsOn: safePadsOn // Ensure string type
+            },
             interruptionRecords: parsed.interruptionRecords || INITIAL_STATE.interruptionRecords,
             basicInfo: { ...INITIAL_STATE.basicInfo, ...parsed.basicInfo },
             technicalInfo: { ...INITIAL_STATE.technicalInfo, ...parsed.technicalInfo }
@@ -118,7 +130,7 @@ const App: React.FC = () => {
             ohcaJudgment: { emt1: '', emt2: '', emt3: '' },
             cprStart: { emt1: '', emt2: '', emt3: '' },
             powerOn: '',
-            padsOn: { emt1: '', emt2: '', emt3: '' },
+            padsOn: '',
             firstVentilation: { emt1: '', emt2: '', emt3: '' },
             mcprSetup: { emt1: '', emt2: '', emt3: '' },
             firstMed: { emt1: '', emt2: '', emt3: '' },
@@ -205,7 +217,7 @@ const App: React.FC = () => {
                     <div>新北 OHCA</div>
                     <div>品管系統</div>
                 </h1>
-                <span className="text-[10px] text-slate-400 font-mono">Ver.20251203.1</span>
+                <span className="text-[10px] text-slate-400 font-mono">Ver.20251203.2</span>
             </div>
         </div>
         <div className="flex gap-2">
