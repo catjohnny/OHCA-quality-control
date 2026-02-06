@@ -131,7 +131,7 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
     const correctedTime = calculateCorrectedAedTime(fieldKey, recordData, data.calibration);
     const isRequired = (REQUIRED_TIME_FIELDS as string[]).includes(fieldKey);
     const label = TIME_FIELD_LABELS[fieldKey] || fieldKey;
-    const isNoCalibration = ['powerOn', 'aedOff', 'firstShock'].includes(fieldKey);
+    const isNoCalibration = ['powerOn', 'aedOff', 'firstShock', 'padsOn'].includes(fieldKey);
     
     return (
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4">
@@ -139,12 +139,15 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
           <span className="font-bold text-slate-800 text-sm">
             {label} {isNoCalibration && <span className="text-xs font-normal text-slate-400">(免校正)</span>} {isRequired && !allowNA && <span className="text-red-500">*</span>}
           </span>
-          <div className="flex items-center space-x-2">
-             <span className="text-[10px] text-slate-500 uppercase">校正後 AED</span>
-             <span className="bg-medical-600 text-white text-xs font-mono py-1 px-2 rounded min-w-[60px] text-center">
-               {correctedTime ? formatTimeDisplay(correctedTime.toISOString()) : '--:--:--'}
-             </span>
-          </div>
+          {/* Only show corrected AED time if it requires calibration */}
+          {!isDirectAed && (
+            <div className="flex items-center space-x-2">
+                <span className="text-[10px] text-slate-500 uppercase">校正後 AED</span>
+                <span className="bg-medical-600 text-white text-xs font-mono py-1 px-2 rounded min-w-[60px] text-center">
+                {correctedTime ? formatTimeDisplay(correctedTime.toISOString()) : '--:--:--'}
+                </span>
+            </div>
+          )}
         </div>
 
         <div className="p-3">
@@ -221,7 +224,7 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
       {renderRow('ohcaJudgment')}
       {renderRow('cprStart')}
       {renderRow('powerOn', true)}
-      {renderRow('padsOn')}
+      {renderRow('padsOn', true)} {/* Changed to direct AED input */}
       {renderRow('firstVentilation', false, true)} {/* Allow NA */}
       {renderRow('mcprSetup', false, true)} {/* Allow NA */}
       {renderRow('firstMed')}
