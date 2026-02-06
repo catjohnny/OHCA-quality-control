@@ -16,7 +16,7 @@ export interface TimeRecord {
   ohcaJudgment: { emt1: string; emt2: string; emt3: string };
   cprStart: { emt1: string; emt2: string; emt3: string };
   powerOn: string; // Direct AED time
-  padsOn: { emt1: string; emt2: string; emt3: string };
+  padsOn: string; // Direct AED time (Changed)
   firstVentilation: { emt1: string; emt2: string; emt3: string };
   mcprSetup: { emt1: string; emt2: string; emt3: string };
   firstMed: { emt1: string; emt2: string; emt3: string };
@@ -97,7 +97,7 @@ export const INITIAL_STATE: AppState = {
     ohcaJudgment: { emt1: '', emt2: '', emt3: '' },
     cprStart: { emt1: '', emt2: '', emt3: '' },
     powerOn: '',
-    padsOn: { emt1: '', emt2: '', emt3: '' },
+    padsOn: '',
     firstVentilation: { emt1: '', emt2: '', emt3: '' },
     mcprSetup: { emt1: '', emt2: '', emt3: '' },
     firstMed: { emt1: '', emt2: '', emt3: '' },
