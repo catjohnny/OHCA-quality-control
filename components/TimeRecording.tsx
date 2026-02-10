@@ -131,7 +131,7 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
     const correctedTime = calculateCorrectedAedTime(fieldKey, recordData, data.calibration);
     const isRequired = (REQUIRED_TIME_FIELDS as string[]).includes(fieldKey);
     const label = TIME_FIELD_LABELS[fieldKey] || fieldKey;
-    const isNoCalibration = ['powerOn', 'aedOff', 'firstShock', 'padsOn'].includes(fieldKey);
+    const isNoCalibration = ['powerOn', 'aedOff', 'firstShock'].includes(fieldKey);
     
     return (
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4">
