@@ -53,12 +53,10 @@ export const calculateCorrectedAedTime = (
   const emt2 = recordData.emt2;
   const emt3 = recordData.emt3;
 
-  // Handle N/A in EMT fields
-  if (emt1 === 'N/A' || emt2 === 'N/A' || emt3 === 'N/A') return null;
-
-  const emt1Time = emt1 ? new Date(emt1).getTime() : null;
-  const emt2Time = emt2 ? new Date(emt2).getTime() : null;
-  const emt3Time = emt3 ? new Date(emt3).getTime() : null;
+  // Handle N/A as empty so priority falls through correctly
+  const emt1Time = (emt1 && emt1 !== 'N/A') ? new Date(emt1).getTime() : null;
+  const emt2Time = (emt2 && emt2 !== 'N/A') ? new Date(emt2).getTime() : null;
+  const emt3Time = (emt3 && emt3 !== 'N/A') ? new Date(emt3).getTime() : null;
 
   const offset1 = getOffsetMs(calibration.emt1.keyTime, calibration.emt1.aedTime);
   const offset2 = getOffsetMs(calibration.emt2.keyTime, calibration.emt2.aedTime);
