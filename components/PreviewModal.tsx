@@ -240,102 +240,112 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
   const bvmText = isVentNA ? '未執行 BVM' : formatDurationDisplay(bvmTime);
   const airwayText = isAirwayNA ? '未建立輔助呼吸道' : formatDurationDisplay(airwayTime);
 
-  // Generate payload for Google Sheet
-  const handleSubmit = async () => {
-    if (!isValid) return;
+    // Generate payload for Google Sheet
+    const handleSubmit = async () => {
+        if (!isValid) return;
 
-    setIsSubmitting(true);
-    
-    // Formatting helper
-    const fmt = (d: Date | null) => d ? formatTimeDisplay(d.toISOString()) : '';
-    const rawFmt = (t: string | object) => {
-        if (typeof t === 'string') return t;
-        const vals = Object.values(t);
-        return vals.find(v => v && v !== 'N/A') || ''; // Return first non-empty, non-NA
-    };
-
-    // Prepare detailed interruptions list (Flat structure: Reason 1, Duration 1, Reason 2, Duration 2...)
-    const flatInterruptions = [
-        ...data.interruptionRecords.beforePads,
-        ...data.interruptionRecords.beforeMcpr
-    ];
-
-    const detailedInterruptions: Record<string, string> = {};
-    flatInterruptions.forEach((item, index) => {
-        const num = index + 1; // 1-based index (1 to 15)
-        const start = calculateMMSSSeconds(item.start);
-        const end = calculateMMSSSeconds(item.end);
-        const duration = (end > start) ? end - start : 0;
+        setIsSubmitting(true);
         
-        // Ensure Reason1..15 and Duration1..15 are always strings
-        detailedInterruptions[`reason${num}`] = item.reason || '';
-        detailedInterruptions[`duration${num}`] = duration > 0 ? duration.toString() : '';
-    });
+        // Formatting helper
+        const fmt = (d: Date | null) => d ? formatTimeDisplay(d.toISOString()) : '';
+        const rawFmt = (t: string | object) => {
+            if (typeof t === 'string') return t;
+            const vals = Object.values(t);
+            return vals.find(v => v && v !== 'N/A') || ''; // Return first non-empty, non-NA
+        };
 
-    const payload = {
-        // Explicitly construct basicInfo to ensure battalion is included
-        basicInfo: {
-            ...data.basicInfo,
-            battalion: data.basicInfo.battalion || ''
-        },
-        // Insert detailed interruptions here so they are available for the sheet export
-        detailedInterruptions,
-        rawTimes: {
-            found: rawFmt(data.timeRecords.found),
-            contact: rawFmt(data.timeRecords.contact),
-            ohca: rawFmt(data.timeRecords.ohcaJudgment),
-            cpr: rawFmt(data.timeRecords.cprStart),
-            pads: rawFmt(data.timeRecords.padsOn),
-            vent: rawFmt(data.timeRecords.firstVentilation),
-            mcpr: rawFmt(data.timeRecords.mcprSetup),
-            airway: rawFmt(data.timeRecords.airway),
-            med: rawFmt(data.timeRecords.firstMed),
-            rosc: rawFmt(data.timeRecords.rosc),
-        },
-        correctedTimes: {
-            ohca: fmt(times.ohca),
-            cpr: fmt(times.cpr),
-            pads: fmt(times.pads),
-            vent: fmt(times.vent),
-            mcpr: fmt(times.mcpr),
-            airway: fmt(times.airway),
-            med: fmt(times.med),
-            aedOff: fmt(times.aedOff),
-        },
-        metrics: {
-            cprDelay: cprDelay !== null ? cprDelay : '',
-            padsDelay: padsDelay !== null ? padsDelay : '',
-            bvmTime: bvmTime !== null ? bvmTime : (isVentNA ? '未執行 BVM' : ''),
-            airwayTime: airwayTime !== null ? airwayTime : (isAirwayNA ? '未建立輔助呼吸道' : ''),
-            medDelay: medDelay !== null ? medDelay : '',
-            ccf: overallCCF,
-            preAedComp: timeInCompPreAed !== null ? timeInCompPreAed : '',
-            preMcprComp: timeInCompPreMcpr !== null ? timeInCompPreMcpr : '',
-            isMcprNA: isMcprNA,
-            isVentNA: isVentNA,
-            isAirwayNA: isAirwayNA
-        },
-        technical: data.technicalInfo,
-        interruptions: {
-            pads: interruptionPads,
-            mcpr: interruptionMcpr
+        // Prepare detailed interruptions list
+        const flatInterruptions = [
+            ...data.interruptionRecords.beforePads,
+            ...data.interruptionRecords.beforeMcpr
+        ];
+
+        // Create a flat payload with keys in the specific order requested
+        // Note: JS object key order is generally preserved for non-integer keys in modern engines
+        const payload: any = {
+            "Timestamp": new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }),
+            "Case ID": data.basicInfo.caseId,
+            "Date": data.basicInfo.date,
+            "Battalion": data.basicInfo.battalion || '',
+            "Unit": data.basicInfo.unit,
+            "Reviewer": data.basicInfo.reviewer,
+            "OHCA Type": data.basicInfo.ohcaType,
+            "Notify Time": data.basicInfo.notificationTime,
+            "Member 1": data.basicInfo.member1,
+            "Member 2": data.basicInfo.member2,
+            "Member 3": data.basicInfo.member3,
+            "Member 4": data.basicInfo.member4,
+            "Member 5": data.basicInfo.member5,
+            "Member 6": data.basicInfo.member6,
+            "Found (Raw)": rawFmt(data.timeRecords.found),
+            "Contact (Raw)": rawFmt(data.timeRecords.contact),
+            "OHCA Judge (Raw)": rawFmt(data.timeRecords.ohcaJudgment),
+            "CPR Start (Raw)": rawFmt(data.timeRecords.cprStart),
+            "Pads On (Raw)": rawFmt(data.timeRecords.padsOn),
+            "Ventilation (Raw)": rawFmt(data.timeRecords.firstVentilation),
+            "Airway (Raw)": rawFmt(data.timeRecords.airway),
+            "MCPR Setup (Raw)": rawFmt(data.timeRecords.mcprSetup),
+            "First Med (Raw)": rawFmt(data.timeRecords.firstMed),
+            "ROSC (Raw)": rawFmt(data.timeRecords.rosc),
+            "OHCA Judge (Adj)": fmt(times.ohca),
+            "CPR Start (Adj)": fmt(times.cpr),
+            "Pads On (Adj)": fmt(times.pads),
+            "Ventilation (Adj)": fmt(times.vent),
+            "Airway (Adj)": fmt(times.airway),
+            "MCPR Setup (Adj)": fmt(times.mcpr),
+            "First Med (Adj)": fmt(times.med),
+            "AED Off (Adj)": fmt(times.aedOff),
+            "CPR Delay (s)": cprDelay !== null ? cprDelay : '',
+            "Pads Delay (s)": padsDelay !== null ? padsDelay : '',
+            "BVM Time (s)": bvmTime !== null ? bvmTime : (isVentNA ? '未執行 BVM' : ''),
+            "Airway Time (s)": airwayTime !== null ? airwayTime : (isAirwayNA ? '未建立輔助呼吸道' : ''),
+            "Med Delay (s)": medDelay !== null ? medDelay : '',
+            "CCF (%)": overallCCF,
+            "Pre-Pads Comp Time": timeInCompPreAed !== null ? timeInCompPreAed : '',
+            "Pre-MCPR Comp Time": timeInCompPreMcpr !== null ? timeInCompPreMcpr : '',
+            "Pads Interruption": interruptionPads,
+            "MCPR Interruption": interruptionMcpr,
+            "Initial Rhythm": data.technicalInfo.initialRhythm,
+            "Check Pulse": data.technicalInfo.checkPulse,
+            "Compressor Used": data.technicalInfo.useCompressor,
+            "Endo Attempts": data.technicalInfo.endoAttempts,
+            "Airway Device": data.technicalInfo.airwayDevice,
+            "ETCO2 Used": data.technicalInfo.etco2Used,
+            "ETCO2 Value": data.technicalInfo.etco2Value,
+            "Pad Position Correct": data.technicalInfo.aedPadCorrect,
+            "IV Operator": data.technicalInfo.ivOperator,
+            "IO Operator": data.technicalInfo.ioOperator,
+            "Endo Operator": data.technicalInfo.endoOperator,
+            "Team Leader": data.technicalInfo.teamLeader,
+            "Memo": data.basicInfo.memo,
+        };
+
+        // Add detailed interruptions (Reason/Duration pairs)
+        flatInterruptions.forEach((item, index) => {
+            const num = index + 1;
+            const start = calculateMMSSSeconds(item.start);
+            const end = calculateMMSSSeconds(item.end);
+            const duration = (end > start) ? end - start : 0;
+            
+            // Use unique keys that the GAS script can map to columns
+            payload[`中斷原因${num}`] = item.reason || '';
+            payload[`中斷秒數${num}`] = duration > 0 ? duration.toString() : '';
+        });
+
+        try {
+            await fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            setIsSubmitting(false);
+            setIsSuccess(true);
+        } catch (error) {
+            setIsSubmitting(false);
+            setErrorMessage('上傳失敗，請檢查網路連線');
         }
     };
-
-    try {
-        await fetch(GOOGLE_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        setIsSubmitting(false);
-        setIsSuccess(true);
-    } catch (error) {
-        setIsSubmitting(false);
-        setErrorMessage('上傳失敗，請檢查網路連線');
-    }
-  };
 
   const handleCopyResult = async () => {
     const members = [
