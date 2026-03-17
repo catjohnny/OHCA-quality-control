@@ -54,7 +54,7 @@ export const TechnicalSkills: React.FC<Props> = ({ info, basicInfo, onChange, on
       <div>
         <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-4">處置認列</h3>
         <div className="space-y-4">
-            {renderStyledSelect('AED 貼片位置是否正確', 'aedPadCorrect', ['Yes', 'No'])}
+            {renderStyledSelect('AED 貼片位置是否正確', 'aedPadCorrect', ['Yes', 'No', 'N/a'])}
             {renderStyledSelect('是否檢查頸動脈', 'checkPulse', PULSE_CHECK_OPTIONS)}
             {renderStyledSelect('壓胸機有無使用', 'useCompressor', ['Yes', 'No'])}
             
