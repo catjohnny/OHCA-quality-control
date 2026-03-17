@@ -1,7 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import Flatpickr from 'react-flatpickr';
-import 'flatpickr/dist/themes/light.css';
-import { MandarinTraditional } from 'flatpickr/dist/l10n/zh-tw.js';
 
 interface Props {
   value: string; // ISO string YYYY-MM-DDTHH:mm:ss
@@ -59,8 +56,8 @@ export const DateTimeInput: React.FC<Props> = ({ value, onChange, disabled, clas
     onChange(`${newDate}T${finalTime}`);
   };
 
-  const handleTimeChange = (selectedDates: Date[], dateStr: string) => {
-    const newTime = dateStr;
+  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = e.target.value;
     setTimeVal(newTime);
 
     // 1. If Time is cleared, clear the whole entry (since partial timestamp is invalid for app)
@@ -76,7 +73,13 @@ export const DateTimeInput: React.FC<Props> = ({ value, onChange, disabled, clas
       setDateVal(finalDate);
     }
 
-    onChange(`${finalDate}T${newTime}`);
+    // Ensure seconds
+    let finalTimeStr = newTime;
+    if (finalTimeStr.length === 5) {
+      finalTimeStr = `${finalTimeStr}:00`;
+    }
+
+    onChange(`${finalDate}T${finalTimeStr}`);
   };
 
   // Extract relevant style classes to apply to children, handling width manually
@@ -91,21 +94,13 @@ export const DateTimeInput: React.FC<Props> = ({ value, onChange, disabled, clas
         disabled={disabled}
         className={`${inputBaseClass} flex-[4] min-w-0`} // Date needs a bit more space
       />
-      <Flatpickr
+      <input
+        type="time"
+        step="1" // CRITICAL: Enables seconds selection on mobile
         value={timeVal}
         onChange={handleTimeChange}
         disabled={disabled}
-        className={`${inputBaseClass} flex-[3] min-w-0 bg-white`}
-        placeholder="--:--:--"
-        options={{
-          enableTime: true,
-          noCalendar: true,
-          dateFormat: "H:i:S",
-          enableSeconds: true,
-          time_24hr: true,
-          disableMobile: true,
-          locale: MandarinTraditional,
-        }}
+        className={`${inputBaseClass} flex-[3] min-w-0`}
       />
     </div>
   );
