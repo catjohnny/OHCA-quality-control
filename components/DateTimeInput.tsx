@@ -85,50 +85,23 @@ export const DateTimeInput: React.FC<Props> = ({ value, onChange, disabled, clas
   // Extract relevant style classes to apply to children, handling width manually
   const inputBaseClass = className?.replace('w-full', '') || '';
 
-return (
+  return (
     <div className={`flex gap-1 w-full ${disabled ? 'opacity-75' : ''}`}>
-      {/* 日期選擇 */}
       <input
         type="date"
         value={dateVal}
         onChange={handleDateChange}
         disabled={disabled}
-        className={`${inputBaseClass} flex-[4] min-w-0`}
+        className={`${inputBaseClass} flex-[4] min-w-0`} // Date needs a bit more space
       />
-      
-      {/* 時與分 (Hours and Minutes) */}
       <input
         type="time"
-        value={timeVal.length >= 5 ? timeVal.substring(0, 5) : timeVal}
-        onChange={(e) => {
-          const hm = e.target.value;
-          if (!hm) {
-            handleTimeChange({ target: { value: '' } } as any);
-            return;
-          }
-          const s = timeVal.split(':')[2] || '00';
-          handleTimeChange({ target: { value: `${hm}:${s}` } } as any);
-        }}
+        step="1" // CRITICAL: Enables seconds selection on mobile
+        value={timeVal}
+        onChange={handleTimeChange}
         disabled={disabled}
-        className={`${inputBaseClass} flex-[2] min-w-0 px-1`}
+        className={`${inputBaseClass} flex-[3] min-w-0`}
       />
-      
-      <span className="flex items-center font-bold text-slate-400">:</span>
-      
-      {/* 秒數獨立下拉選單 (Seconds Dropdown) */}
-      <select
-        value={timeVal.split(':')[2] || '00'}
-        onChange={(e) => {
-          const hm = timeVal.length >= 5 ? timeVal.substring(0, 5) : '00:00';
-          handleTimeChange({ target: { value: `${hm}:${e.target.value}` } } as any);
-        }}
-        disabled={disabled || !timeVal}
-        className={`${inputBaseClass} flex-[1] min-w-0 px-0 text-center`}
-      >
-        {Array.from({ length: 60 }, (_, i) => {
-          const sec = i.toString().padStart(2, '0');
-          return <option key={sec} value={sec}>{sec}</option>;
-        })}
-      </select>
     </div>
   );
+};
