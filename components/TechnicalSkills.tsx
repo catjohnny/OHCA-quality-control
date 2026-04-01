@@ -38,7 +38,7 @@ export const TechnicalSkills: React.FC<Props> = ({ info, basicInfo, onChange, on
                 : 'bg-white border-slate-300 text-slate-800 focus:ring-medical-500'
             }`}
         >
-          <option value="" disabled>請選擇</option>
+          <option value="" >請選擇</option>
           {options.map((opt) => (
             <option key={opt} value={opt}>{opt}</option>
           ))}
