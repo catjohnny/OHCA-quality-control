@@ -32,7 +32,7 @@ export const InputGroup: React.FC<InputGroupProps> = ({
       
       {as === 'select' ? (
         <select className={baseClasses} {...(props as any)}>
-          <option value="" disabled>請選擇</option>
+          <option value="" >請選擇</option>
           {options?.map((opt) => (
             <option key={opt} value={opt}>{opt}</option>
           ))}
