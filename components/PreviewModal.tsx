@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { AppState, TimeRecord, InterruptionItem } from '../types';
 import { calculateCorrectedAedTime, formatTimeDisplay } from '../services/timeUtils';
 
-const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbxMFLx2_3Flt68Kql6bZVx6J5a6Aq9rMHRiK1UeLldL5ax4JOK3QOuzrHU-cBYgE8ZAyA/exec"; 
+const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbzGr7TNFZqyWhpkBpReoHhjV2fO0nmndtA9oKh3ZyquTbl1ZCLpTGH4mV2XCkfzvEr8fg/exec"; 
 const GOOGLE_SHEET_URL: string = "https://docs.google.com/spreadsheets/d/1DxjxcX5eklxkuXsQwRphw1z_eT8AOgD9OJavBCpjfcM/edit?gid=0#gid=0";
 
 interface Props {
@@ -247,11 +247,22 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
         setIsSubmitting(true);
         
         // Formatting helper
-        const fmt = (d: Date | null) => d ? formatTimeDisplay(d.toISOString()) : '';
+        const formatDateTime = (d: Date | null) => {
+            if (!d || isNaN(d.getTime())) return '';
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        };
+        const fmt = (d: Date | null) => formatDateTime(d);
         const rawFmt = (t: string | object) => {
-            if (typeof t === 'string') return t;
-            const vals = Object.values(t);
-            return vals.find(v => v && v !== 'N/A') || ''; // Return first non-empty, non-NA
+            let val = '';
+            if (typeof t === 'string') val = t;
+            else {
+                const vals = Object.values(t);
+                val = vals.find(v => v && v !== 'N/A') as string || '';
+            }
+            if (!val) return '';
+            const d = new Date(val);
+            return isNaN(d.getTime()) ? val : formatDateTime(d);
         };
 
         // Prepare detailed interruptions list (Reason 1, Duration 1, Reason 2, Duration 2...)
