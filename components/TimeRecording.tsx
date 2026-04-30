@@ -1,6 +1,5 @@
-
 import React, { useMemo } from 'react';
-import { AppState, TimeRecord } from '../types';
+import { AppState, TimeRecord, SingleTimeRecord } from '../types';
 import { calculateCorrectedAedTime, formatTimeDisplay } from '../services/timeUtils';
 import { REQUIRED_TIME_FIELDS, TIME_FIELD_LABELS } from '../constants';
 import { DateTimeInput } from './DateTimeInput';
@@ -14,22 +13,28 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
   
   const handleTimeChange = (
     category: keyof TimeRecord,
-    subField: string | null,
+    subField: 'time' | 'source' | null,
     newValue: string
   ) => {
     onChange(category, subField, newValue);
   };
 
-  const handleToggleNA = (category: keyof TimeRecord, subField: string | null, currentValue: string) => {
+  const handleToggleNA = (category: keyof TimeRecord, currentValue: string) => {
       const isNA = currentValue === 'N/A';
-      handleTimeChange(category, subField, isNA ? '' : 'N/A');
+      handleTimeChange(category, 'time', isNA ? '' : 'N/A');
+      if (!isNA) handleTimeChange(category, 'source', '');
   };
 
-  const isEmtEnabled = (emt: string) => {
-    if (emt === 'emt1') return true; 
-    const cal = data.calibration[emt as 'emt1'|'emt2'|'emt3'];
-    return cal && cal.keyTime && cal.keyTime.length > 0;
+  // 取得可以選擇的來源
+  const getAvailableSources = () => {
+    const sources = [{ value: '', label: '請選擇來源' }, { value: 'aed', label: 'AED' }];
+    if (data.calibration.emt1.keyTime) sources.push({ value: 'emt1', label: 'EMT1' });
+    if (data.calibration.emt2.keyTime) sources.push({ value: 'emt2', label: 'EMT2' });
+    if (data.calibration.emt3.keyTime) sources.push({ value: 'emt3', label: 'EMT3' });
+    return sources;
   };
+
+  const availableSources = getAvailableSources();
 
   const correctedTimes = useMemo(() => {
     const times: Record<string, Date | null> = {};
@@ -42,24 +47,21 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
   const getValidationError = (
     fieldKey: keyof TimeRecord, 
     specificValue: string, 
-    subField: string | null 
+    source: string | null 
   ): boolean => {
     if (!specificValue || specificValue === 'N/A') return false;
 
     let currentCorrected: Date | null = null;
     
-    if (subField === null) {
+    if (source === null || source === '' || source === 'aed') {
         currentCorrected = new Date(specificValue);
     } else {
-        const offset = data.calibration[subField as 'emt1'|'emt2'|'emt3'];
+        const offset = data.calibration[source as 'emt1'|'emt2'|'emt3'];
         if (offset && offset.keyTime && offset.aedTime) {
             const diff = new Date(offset.keyTime).getTime() - new Date(offset.aedTime).getTime();
             currentCorrected = new Date(new Date(specificValue).getTime() - diff);
         } else {
-            if (subField === 'emt1' && !offset.keyTime) {
-                 return false;
-            }
-             return false;
+            return false;
         }
     }
 
@@ -104,24 +106,6 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
     }
   };
 
-  const getStyle = (val: string, disabled: boolean, isError: boolean) => {
-    if (disabled) {
-        return `w-full text-xs p-1 h-10 border rounded outline-none text-center transition-colors bg-slate-200 border-slate-200 text-slate-400 cursor-not-allowed`;
-    }
-    const hasValue = val && val.length > 0;
-    
-    if (isError) {
-        return `w-full text-xs p-1 h-10 border rounded outline-none text-center transition-colors bg-pink-100 border-red-300 text-red-600 font-bold focus:ring-1 focus:ring-red-200`;
-    }
-
-    if (val === 'N/A') {
-        return `w-full text-xs p-1 h-10 border rounded outline-none text-center transition-colors bg-slate-100 text-slate-500 font-mono tracking-wider`;
-    }
-
-    return `w-full text-xs p-1 h-10 border rounded focus:ring-1 focus:ring-medical-500 outline-none text-center transition-colors
-      ${hasValue ? 'bg-white border-medical-200' : 'bg-slate-50 border-slate-200'}`;
-  };
-
   const renderRow = (
     fieldKey: keyof TimeRecord, 
     isDirectAed: boolean = false,
@@ -139,7 +123,6 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
           <span className="font-bold text-slate-800 text-sm">
             {label} {isNoCalibration && <span className="text-xs font-normal text-slate-400">(免校正)</span>} {isRequired && !allowNA && <span className="text-red-500">*</span>}
           </span>
-          {/* Only show corrected AED time if it requires calibration */}
           {!isDirectAed && (
             <div className="flex items-center space-x-2">
                 <span className="text-[10px] text-slate-500 uppercase">校正後 AED</span>
@@ -155,57 +138,49 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
              <DateTimeInput
                value={recordData as string}
                onChange={(val) => handleTimeChange(fieldKey, null, val)}
-               className={getStyle(
-                   recordData as string, 
-                   false, 
-                   getValidationError(fieldKey, recordData as string, null)
-               )}
+               className={`w-full text-xs p-1 h-10 border rounded focus:ring-1 focus:ring-medical-500 outline-none text-center transition-colors ${getValidationError(fieldKey, recordData as string, null) ? 'bg-pink-100 border-red-300 text-red-600 font-bold focus:ring-red-200' : 'bg-white border-medical-200'}`}
                defaultDate={data.basicInfo.date}
              />
           ) : (
-            <div className="grid grid-cols-1 gap-2">
-              {(['emt1', 'emt2', 'emt3'] as const).map((emt) => {
-                const disabled = !isEmtEnabled(emt);
-                const val = (recordData as any)[emt];
-                const isError = !disabled && getValidationError(fieldKey, val, emt);
-                const isNA = val === 'N/A';
+            <div className="flex items-center gap-2">
+              <div className="flex-1 flex gap-2">
+                {((recordData as SingleTimeRecord).time === 'N/A') ? (
+                   <div className="w-full text-xs p-1 h-10 border border-slate-200 rounded bg-slate-100 text-slate-500 flex items-center justify-center font-bold">
+                       未執行 / 不適用
+                   </div>
+                ) : (
+                   <>
+                     <DateTimeInput
+                       value={(recordData as SingleTimeRecord).time}
+                       onChange={(newVal) => handleTimeChange(fieldKey, 'time', newVal)}
+                       className={`flex-1 text-xs p-1 h-10 border rounded focus:ring-1 outline-none text-center transition-colors ${getValidationError(fieldKey, (recordData as SingleTimeRecord).time, (recordData as SingleTimeRecord).source) ? 'bg-pink-100 border-red-300 text-red-600 font-bold focus:ring-red-200' : 'bg-white border-medical-200'}`}
+                       defaultDate={data.basicInfo.date}
+                     />
+                     <select
+                       value={(recordData as SingleTimeRecord).source}
+                       onChange={(e) => handleTimeChange(fieldKey, 'source', e.target.value)}
+                       className="w-24 text-xs border border-medical-200 rounded px-1 h-10 bg-white outline-none focus:ring-1 focus:ring-medical-500"
+                     >
+                       {availableSources.map(s => (
+                         <option key={s.value} value={s.value}>{s.label}</option>
+                       ))}
+                     </select>
+                   </>
+                )}
                 
-                return (
-                  <div key={emt} className="flex items-center gap-2">
-                     <label className={`w-10 text-[10px] uppercase text-right font-bold ${disabled ? 'text-slate-300' : 'text-slate-500'}`}>
-                        {emt.toUpperCase()}
-                     </label>
-                     <div className="flex-1 flex gap-1">
-                        {isNA ? (
-                           <div className="w-full text-xs p-1 h-10 border border-slate-200 rounded bg-slate-100 text-slate-500 flex items-center justify-center font-bold">
-                               未執行 / 不適用
-                           </div>
-                        ) : (
-                            <DateTimeInput
-                            value={val}
-                            onChange={(newVal) => handleTimeChange(fieldKey, emt, newVal)}
-                            disabled={disabled}
-                            className={getStyle(val, disabled, isError)}
-                            defaultDate={data.basicInfo.date}
-                            />
-                        )}
-                        
-                        {allowNA && !disabled && (
-                            <button 
-                                onClick={() => handleToggleNA(fieldKey, emt, val)}
-                                className={`px-2 rounded border text-[10px] font-bold transition-colors w-14 shrink-0
-                                    ${isNA 
-                                        ? 'bg-red-500 text-white border-red-600 hover:bg-red-600' 
-                                        : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-100'
-                                    }`}
-                            >
-                                {isNA ? '取消' : 'N/a'}
-                            </button>
-                        )}
-                     </div>
-                  </div>
-                );
-              })}
+                {allowNA && (
+                    <button 
+                        onClick={() => handleToggleNA(fieldKey, (recordData as SingleTimeRecord).time)}
+                        className={`px-2 rounded border text-[10px] font-bold transition-colors w-14 shrink-0
+                            ${((recordData as SingleTimeRecord).time === 'N/A')
+                                ? 'bg-red-500 text-white border-red-600 hover:bg-red-600' 
+                                : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-100'
+                            }`}
+                    >
+                        {((recordData as SingleTimeRecord).time === 'N/A') ? '取消' : 'N/a'}
+                    </button>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -217,18 +192,19 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
     <div className="space-y-2 animate-fadeIn pb-24">
       <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-100 text-yellow-800 text-xs mb-4">
         <i className="fas fa-exclamation-triangle mr-1"></i>
-        標示 * 為必填。輸入時間將自動帶入案件日期。時間順序錯誤將顯示紅字。
+        標示 * 為必填。輸入時間將自動帶入案件日期。可選擇時間來源(如密錄器或AED)，系統會自動校正。<br/>
+        若無校正資料，時間預設為 AED 標準時間。
       </div>
       {renderRow('found')}
       {renderRow('contact')}
       {renderRow('ohcaJudgment')}
       {renderRow('cprStart')}
       {renderRow('powerOn', true)}
-      {renderRow('padsOn', true)} {/* Changed to direct AED input */}
-      {renderRow('firstVentilation', false, true)} {/* Allow NA */}
-      {renderRow('mcprSetup', false, true)} {/* Allow NA */}
+      {renderRow('padsOn', true)}
+      {renderRow('firstVentilation', false, true)}
+      {renderRow('mcprSetup', false, true)}
       {renderRow('firstMed')}
-      {renderRow('airway', false, true)} {/* New field, allow NA */}
+      {renderRow('airway', false, true)}
       {renderRow('aedOff', true)}
       {renderRow('rosc')}
       {renderRow('firstShock', true)}

@@ -3,10 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { TimeCalibration } from './components/TimeCalibration';
 import { TimeRecording } from './components/TimeRecording';
 import { BasicInfo } from './components/BasicInfo';
-import { TechnicalSkills } from './components/TechnicalSkills';
+import { TechnicalSkills } from './components/TechnicalSkills'; // 刪除
+import { Checklist } from './components/Checklist';
 import { Interruption } from './components/Interruption';
 import { PreviewModal } from './components/PreviewModal';
-import { AppState, INITIAL_STATE, InterruptionItem, InterruptionRecords } from './types';
+import { AppState, INITIAL_STATE, InterruptionItem, InterruptionRecords, PingtungChecklist } from './types';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -19,25 +20,25 @@ const App: React.FC = () => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        
+
         // Safety check for padsOn type migration (object -> string)
         let safePadsOn = '';
         if (parsed.timeRecords && typeof parsed.timeRecords.padsOn === 'string') {
-            safePadsOn = parsed.timeRecords.padsOn;
+          safePadsOn = parsed.timeRecords.padsOn;
         }
 
         // Merge with initial state to ensure new fields exist
         setData({
-            ...INITIAL_STATE,
-            ...parsed,
-            timeRecords: {
-                ...INITIAL_STATE.timeRecords,
-                ...parsed.timeRecords,
-                padsOn: safePadsOn // Ensure string type
-            },
-            interruptionRecords: parsed.interruptionRecords || INITIAL_STATE.interruptionRecords,
-            basicInfo: { ...INITIAL_STATE.basicInfo, ...parsed.basicInfo },
-            technicalInfo: { ...INITIAL_STATE.technicalInfo, ...parsed.technicalInfo }
+          ...INITIAL_STATE,
+          ...parsed,
+          timeRecords: {
+            ...INITIAL_STATE.timeRecords,
+            ...parsed.timeRecords,
+            padsOn: safePadsOn // Ensure string type
+          },
+          interruptionRecords: parsed.interruptionRecords || INITIAL_STATE.interruptionRecords,
+          basicInfo: { ...INITIAL_STATE.basicInfo, ...parsed.basicInfo },
+          checklist: parsed.checklist ? { ...INITIAL_STATE.checklist, ...parsed.checklist } : INITIAL_STATE.checklist
         });
       } catch (e) {
         console.error("Failed to load state", e);
@@ -61,36 +62,36 @@ const App: React.FC = () => {
 
   const updateTimeRecord = (category: keyof typeof data.timeRecords, subField: string | null, value: string) => {
     setData(prev => {
-        const currentCategory = prev.timeRecords[category];
-        let newValue;
-        
-        if (subField && typeof currentCategory === 'object') {
-            newValue = { ...currentCategory, [subField]: value };
-        } else {
-            newValue = value;
-        }
+      const currentCategory = prev.timeRecords[category];
+      let newValue;
 
-        return {
-            ...prev,
-            timeRecords: {
-                ...prev.timeRecords,
-                [category]: newValue
-            }
-        };
+      if (subField && typeof currentCategory === 'object') {
+        newValue = { ...currentCategory, [subField]: value };
+      } else {
+        newValue = value;
+      }
+
+      return {
+        ...prev,
+        timeRecords: {
+          ...prev.timeRecords,
+          [category]: newValue
+        }
+      };
     });
   };
 
   const updateInterruption = (section: keyof InterruptionRecords, index: number, field: keyof InterruptionItem, value: string) => {
     setData(prev => {
-        const list = [...prev.interruptionRecords[section]];
-        list[index] = { ...list[index], [field]: value };
-        return {
-            ...prev,
-            interruptionRecords: {
-                ...prev.interruptionRecords,
-                [section]: list
-            }
-        };
+      const list = [...prev.interruptionRecords[section]];
+      list[index] = { ...list[index], [field]: value };
+      return {
+        ...prev,
+        interruptionRecords: {
+          ...prev.interruptionRecords,
+          [section]: list
+        }
+      };
     });
   };
 
@@ -98,12 +99,12 @@ const App: React.FC = () => {
     setData(prev => ({ ...prev, basicInfo: { ...prev.basicInfo, [field]: value } }));
   };
 
-  const updateTechnical = (field: any, value: any) => {
-    setData(prev => ({ ...prev, technicalInfo: { ...prev.technicalInfo, [field]: value } }));
+  const updateChecklist = (field: keyof PingtungChecklist, value: any) => {
+    setData(prev => ({ ...prev, checklist: { ...prev.checklist, [field]: value } }));
   };
 
   const handleSubmitToGoogleSheet = () => {
-      // Logic handled in PreviewModal
+    // Logic handled in PreviewModal
   };
 
   const handleReset = () => {
@@ -125,40 +126,26 @@ const App: React.FC = () => {
           beforeMcpr: Array(10).fill(null).map((_, i) => ({ id: i.toString(), start: '', end: '', reason: '' })),
         },
         timeRecords: {
-            found: { emt1: '', emt2: '', emt3: '' },
-            contact: { emt1: '', emt2: '', emt3: '' },
-            ohcaJudgment: { emt1: '', emt2: '', emt3: '' },
-            cprStart: { emt1: '', emt2: '', emt3: '' },
-            powerOn: '',
-            padsOn: '',
-            firstVentilation: { emt1: '', emt2: '', emt3: '' },
-            mcprSetup: { emt1: '', emt2: '', emt3: '' },
-            firstMed: { emt1: '', emt2: '', emt3: '' },
-            airway: { emt1: '', emt2: '', emt3: '' }, // Reset new field
-            aedOff: '',
-            rosc: { emt1: '', emt2: '', emt3: '' },
-            firstShock: '',
+          found: { time: '', source: '' },
+          contact: { time: '', source: '' },
+          ohcaJudgment: { time: '', source: '' },
+          cprStart: { time: '', source: '' },
+          powerOn: '',
+          padsOn: '',
+          firstVentilation: { time: '', source: '' },
+          mcprSetup: { time: '', source: '' },
+          firstMed: { time: '', source: '' },
+          airway: { time: '', source: '' },
+          aedOff: '',
+          rosc: { time: '', source: '' },
+          firstShock: '',
         },
         calibration: {
-            emt1: { keyTime: '', aedTime: '' },
-            emt2: { keyTime: '', aedTime: '' },
-            emt3: { keyTime: '', aedTime: '' },
+          emt1: { keyTime: '', aedTime: '' },
+          emt2: { keyTime: '', aedTime: '' },
+          emt3: { keyTime: '', aedTime: '' },
         },
-        technicalInfo: {
-            ...INITIAL_STATE.technicalInfo,
-            checkPulse: '',
-            useCompressor: '',
-            initialRhythm: '',
-            endoAttempts: 0,
-            airwayDevice: '',
-            etco2Used: '', // Reset to empty string (Please Select)
-            etco2Value: '',
-            ivOperator: '',
-            ioOperator: '',
-            endoOperator: '',
-            teamLeader: '',
-            aedPadCorrect: '',
-        }
+        checklist: INITIAL_STATE.checklist
       };
       setData(freshState);
       setActiveTab(0);
@@ -178,27 +165,21 @@ const App: React.FC = () => {
 
   const tabs = [
     { title: '基本資料', icon: 'fa-file-medical', component: <BasicInfo info={data.basicInfo} onChange={updateBasic} /> },
-    { 
-        title: '時間校正', 
-        icon: 'fa-clock', 
-        component: <TimeCalibration 
-            calibration={data.calibration} 
-            onChange={updateCalibration} 
-            defaultDate={data.basicInfo.date} 
-        /> 
+    {
+      title: '時間校正',
+      icon: 'fa-clock',
+      component: <TimeCalibration
+        calibration={data.calibration}
+        onChange={updateCalibration}
+        defaultDate={data.basicInfo.date}
+      />
     },
     { title: '時間紀錄', icon: 'fa-stopwatch', component: <TimeRecording data={data} onChange={updateTimeRecord} /> },
     { title: '中斷時間', icon: 'fa-pause-circle', component: <Interruption records={data.interruptionRecords} onChange={updateInterruption} /> },
-    { 
-      title: '處置認列', 
-      icon: 'fa-stethoscope', 
-      component: <TechnicalSkills 
-        info={data.technicalInfo} 
-        basicInfo={data.basicInfo} 
-        onChange={updateTechnical} 
-        onBasicChange={updateBasic}
-        crewMembers={crewMembers} 
-      /> 
+    {
+      title: '屏東品管',
+      icon: 'fa-clipboard-check',
+      component: <Checklist data={data.checklist} onChange={updateChecklist} />
     },
   ];
 
@@ -207,47 +188,47 @@ const App: React.FC = () => {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-md shadow-sm z-40 px-4 py-2 flex justify-between items-center border-b border-slate-200">
         <div className="flex items-center gap-3">
-            <img 
-                src="https://cdn-icons-png.flaticon.com/512/2966/2966327.png" 
-                alt="Logo" 
-                className="w-8 h-8 object-contain"
-            />
-            <div className="flex flex-col">
-                <h1 className="font-bold text-lg text-slate-900 leading-tight">
-                    <div>新北 OHCA</div>
-                    <div>品管系統</div>
-                </h1>
-                <span className="text-[10px] text-slate-400 font-mono">Ver.20251203.2</span>
-            </div>
+          <img
+            src="https://cdn-icons-png.flaticon.com/512/2966/2966327.png"
+            alt="Logo"
+            className="w-8 h-8 object-contain"
+          />
+          <div className="flex flex-col">
+            <h1 className="font-bold text-lg text-slate-900 leading-tight">
+              <div>屏東 OHCA</div>
+              <div>品管系統</div>
+            </h1>
+            <span className="text-[10px] text-slate-400 font-mono">Ver.20260430.1</span>
+          </div>
         </div>
         <div className="flex gap-2">
-            <button 
-                onClick={handleReset}
-                className="bg-white text-slate-600 border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center"
-            >
-                <i className="fas fa-plus mr-1"></i> <span className="inline">新案件</span>
-            </button>
-            <button 
-                onClick={() => setShowPreview(true)}
-                className="bg-medical-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-medical-700 transition-colors shadow-medical-200 shadow-md flex items-center"
-            >
-                送出 <i className="fas fa-paper-plane ml-2"></i>
-            </button>
+          <button
+            onClick={handleReset}
+            className="bg-white text-slate-600 border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center"
+          >
+            <i className="fas fa-plus mr-1"></i> <span className="inline">新案件</span>
+          </button>
+          <button
+            onClick={() => setShowPreview(true)}
+            className="bg-medical-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-medical-700 transition-colors shadow-medical-200 shadow-md flex items-center"
+          >
+            送出 <i className="fas fa-paper-plane ml-2"></i>
+          </button>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="pt-20 px-4 max-w-3xl mx-auto">
         <div className="mb-6">
-            <h2 className="text-xl font-bold text-slate-900 mb-1">{tabs[activeTab].title}</h2>
-            <p className="text-slate-500 text-xs">
-                {activeTab === 0 && "請優先填寫基本資料"}
-                {activeTab === 1 && "請校正密錄器與 AED 時間"}
-                {activeTab === 2 && "輸入時間，系統將自動套用校正"}
-                {activeTab === 3 && "紀錄 CPR 中斷原因與時間"}
-            </p>
+          <h2 className="text-xl font-bold text-slate-900 mb-1">{tabs[activeTab].title}</h2>
+          <p className="text-slate-500 text-xs">
+            {activeTab === 0 && "請優先填寫基本資料"}
+            {activeTab === 1 && "請校正密錄器與 AED 時間"}
+            {activeTab === 2 && "輸入時間，系統將自動套用校正"}
+            {activeTab === 3 && "紀錄 CPR 中斷原因與時間"}
+          </p>
         </div>
-        
+
         {tabs[activeTab].component}
       </main>
 
@@ -258,9 +239,8 @@ const App: React.FC = () => {
             <button
               key={index}
               onClick={() => setActiveTab(index)}
-              className={`flex flex-col items-center justify-center p-2 min-w-[60px] flex-1 rounded-lg transition-colors ${
-                activeTab === index ? 'text-medical-600 bg-blue-50' : 'text-slate-400 hover:text-slate-600'
-              }`}
+              className={`flex flex-col items-center justify-center p-2 min-w-[60px] flex-1 rounded-lg transition-colors ${activeTab === index ? 'text-medical-600 bg-blue-50' : 'text-slate-400 hover:text-slate-600'
+                }`}
             >
               <i className={`fas ${tab.icon} text-lg mb-1`}></i>
               <span className="text-[10px] font-medium whitespace-nowrap">{tab.title.substring(0, 4)}</span>
@@ -271,10 +251,10 @@ const App: React.FC = () => {
 
       {/* Preview Modal */}
       {showPreview && (
-        <PreviewModal 
-            data={data} 
-            onClose={() => setShowPreview(false)} 
-            onSubmit={handleSubmitToGoogleSheet} 
+        <PreviewModal
+          data={data}
+          onClose={() => setShowPreview(false)}
+          onSubmit={handleSubmitToGoogleSheet}
         />
       )}
     </div>

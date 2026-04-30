@@ -2,17 +2,14 @@
 
 
 // UNIT_OPTIONS removed as requested for manual input
-export const UNIT_OPTIONS = []; 
+export const UNIT_OPTIONS = [];
 
 export const BATTALION_OPTIONS = [
   "第一大隊",
   "第二大隊",
   "第三大隊",
   "第四大隊",
-  "第五大隊",
-  "第六大隊",
-  "第七大隊",
-  "特搜大隊"
+  "測試大隊"
 ];
 
 export const PULSE_CHECK_OPTIONS = [
@@ -33,10 +30,11 @@ export const RHYTHM_OPTIONS = [
 
 export const AIRWAY_OPTIONS = [
   "0. 沒有建立進階呼吸道",
-  "1. SGA",
-  "2. 傳統式喉頭鏡",
-  "3. 影像式喉頭鏡",
-  "4. 已有氣切道"
+  "1. SGA(LMA)",
+  "2. SGA(i-gel)",
+  "3. 傳統式喉頭鏡",
+  "4. 影像式喉頭鏡",
+  "5. 已有氣切道"
 ];
 
 export const ENDO_ATTEMPTS_OPTIONS = [0, 1, 2, 3, 4, 5];
@@ -98,3 +96,77 @@ export const REQUIRED_TIME_FIELDS = [
   'found', 'contact', 'ohcaJudgment', 'cprStart', 'powerOn',
   'padsOn', 'firstVentilation', 'mcprSetup', 'firstMed', 'aedOff'
 ];
+
+export const HOSPITAL_OPTIONS = [
+  "國仁醫院", "國軍屏醫", "大新醫院", "安泰醫院", "寶建醫院",
+  "屏基", "屏東榮總", "屏東醫院", "枋寮醫院", "潮州安泰",
+  "琉球衛生所", "署恆分院", "義大醫院", "輔英附醫", "龍泉分院"
+];
+
+export const QA_CHECKLIST_OPTIONS = {
+  recordForm: [
+    "主訴欄位未依規定填寫",
+    "沒有檔案",
+    "生命徵象欄位應填項目未填寫",
+    "生命徵象欄位未依規定填寫",
+    "處置項目填寫有誤"
+  ],
+  aedRecord: ["沒有檔案"],
+  dashcam: ["檔案缺漏(接觸前到交接後)", "沒有檔案"],
+  bodycam: [
+    "檔案缺漏(接觸前到交接後)",
+    "沒有兩份以上檔案",
+    "沒有檔案",
+    "沒有現場急救畫面"
+  ],
+  askWillingness: [
+    "沒有影像畫面",
+    "沒有邊急救邊詢問",
+    "詢問時未優先詢問dnr"
+  ],
+  assessmentError: [
+    "沒有(重新)評估",
+    "沒有影像畫面",
+    "評估時間超過10秒"
+  ],
+  incorrectTreatment: [
+    "IV 現場一針為限(BLS)",
+    "SGA 未照流程建立"
+  ],
+  cprRateError: [
+    "低於15秒",
+    "沒有影像畫面",
+    "高於18秒"
+  ],
+  postureError: [
+    "按壓位置不正確",
+    "按壓深度不足",
+    "沒有影像畫面",
+    "胸部未回彈"
+  ],
+  airwayTreatment: [
+    "固定不確實",
+    "放置不確實",
+    "沒有先朔型/測試CUFF",
+    "沒有影像畫面",
+    "沒有通氣測試",
+    "沒有降階處置"
+  ],
+  ventilationRate: [
+    "未6秒給一口氣",
+    "未執行30比2",
+    "沒有影像畫面"
+  ],
+  no100PercentOxygen: [
+    "沒有影像畫面",
+    "現場沒有100%氧氣治療",
+    "車上沒有100%氧氣治療"
+  ],
+  treatmentLevel: [
+    "其他(有疑義的案件)",
+    "完整處置",
+    "完整處置+IV",
+    "處置不完整(有缺漏或延遲)"
+  ]
+};
+
