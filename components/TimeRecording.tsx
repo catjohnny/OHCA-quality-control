@@ -118,15 +118,15 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
     const isNoCalibration = ['powerOn', 'aedOff', 'firstShock'].includes(fieldKey);
     
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4">
-        <div className="bg-slate-50 p-3 border-b border-slate-100 flex justify-between items-center">
-          <span className="font-bold text-slate-800 text-sm">
-            {label} {isNoCalibration && <span className="text-xs font-normal text-slate-400">(免校正)</span>} {isRequired && !allowNA && <span className="text-red-500">*</span>}
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-4 transition-colors">
+        <div className="bg-slate-50 dark:bg-slate-700/50 p-3 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center transition-colors">
+          <span className="font-bold text-slate-800 dark:text-slate-100 text-sm transition-colors">
+            {label} {isNoCalibration && <span className="text-xs font-normal text-slate-400 dark:text-slate-500">(免校正)</span>} {isRequired && !allowNA && <span className="text-red-500">*</span>}
           </span>
           {!isDirectAed && (
             <div className="flex items-center space-x-2">
-                <span className="text-[10px] text-slate-500 uppercase">校正後 AED</span>
-                <span className="bg-medical-600 text-white text-xs font-mono py-1 px-2 rounded min-w-[60px] text-center">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase transition-colors">校正後 AED</span>
+                <span className="bg-medical-600 text-white text-xs font-mono py-1 px-2 rounded min-w-[60px] text-center shadow-sm">
                 {correctedTime ? formatTimeDisplay(correctedTime.toISOString()) : '--:--:--'}
                 </span>
             </div>
@@ -138,14 +138,14 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
              <DateTimeInput
                value={recordData as string}
                onChange={(val) => handleTimeChange(fieldKey, null, val)}
-               className={`w-full text-xs p-1 h-10 border rounded focus:ring-1 focus:ring-medical-500 outline-none text-center transition-colors ${getValidationError(fieldKey, recordData as string, null) ? 'bg-pink-100 border-red-300 text-red-600 font-bold focus:ring-red-200' : 'bg-white border-medical-200'}`}
+               className={`w-full text-xs p-1 h-10 border rounded focus:ring-1 focus:ring-medical-500 outline-none text-center transition-colors ${getValidationError(fieldKey, recordData as string, null) ? 'bg-pink-100 dark:bg-pink-900/30 border-red-300 dark:border-red-500/50 text-red-600 dark:text-red-400 font-bold focus:ring-red-200' : 'bg-white dark:bg-slate-700 border-medical-200 dark:border-slate-600 text-slate-800 dark:text-slate-100'}`}
                defaultDate={data.basicInfo.date}
              />
           ) : (
             <div className="flex items-center gap-2">
               <div className="flex-1 flex gap-2">
                 {((recordData as SingleTimeRecord).time === 'N/A') ? (
-                   <div className="w-full text-xs p-1 h-10 border border-slate-200 rounded bg-slate-100 text-slate-500 flex items-center justify-center font-bold">
+                   <div className="w-full text-xs p-1 h-10 border border-slate-200 dark:border-slate-600 rounded bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 flex items-center justify-center font-bold transition-colors">
                        未執行 / 不適用
                    </div>
                 ) : (
@@ -153,13 +153,13 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
                      <DateTimeInput
                        value={(recordData as SingleTimeRecord).time}
                        onChange={(newVal) => handleTimeChange(fieldKey, 'time', newVal)}
-                       className={`flex-1 text-xs p-1 h-10 border rounded focus:ring-1 outline-none text-center transition-colors ${getValidationError(fieldKey, (recordData as SingleTimeRecord).time, (recordData as SingleTimeRecord).source) ? 'bg-pink-100 border-red-300 text-red-600 font-bold focus:ring-red-200' : 'bg-white border-medical-200'}`}
+                       className={`flex-1 text-xs p-1 h-10 border rounded focus:ring-1 outline-none text-center transition-colors ${getValidationError(fieldKey, (recordData as SingleTimeRecord).time, (recordData as SingleTimeRecord).source) ? 'bg-pink-100 dark:bg-pink-900/30 border-red-300 dark:border-red-500/50 text-red-600 dark:text-red-400 font-bold focus:ring-red-200' : 'bg-white dark:bg-slate-700 border-medical-200 dark:border-slate-600 text-slate-800 dark:text-slate-100'}`}
                        defaultDate={data.basicInfo.date}
                      />
                      <select
                        value={(recordData as SingleTimeRecord).source}
                        onChange={(e) => handleTimeChange(fieldKey, 'source', e.target.value)}
-                       className="w-24 text-xs border border-medical-200 rounded px-1 h-10 bg-white outline-none focus:ring-1 focus:ring-medical-500"
+                       className="w-24 text-xs border border-medical-200 dark:border-slate-600 rounded px-1 h-10 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 outline-none focus:ring-1 focus:ring-medical-500 transition-colors"
                      >
                        {availableSources.map(s => (
                          <option key={s.value} value={s.value}>{s.label}</option>
@@ -174,7 +174,7 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
                         className={`px-2 rounded border text-[10px] font-bold transition-colors w-14 shrink-0
                             ${((recordData as SingleTimeRecord).time === 'N/A')
                                 ? 'bg-red-500 text-white border-red-600 hover:bg-red-600' 
-                                : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-100'
+                                : 'bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600'
                             }`}
                     >
                         {((recordData as SingleTimeRecord).time === 'N/A') ? '取消' : 'N/a'}
@@ -190,7 +190,7 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
 
   return (
     <div className="space-y-2 animate-fadeIn pb-24">
-      <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-100 text-yellow-800 text-xs mb-4">
+      <div className="bg-yellow-50 dark:bg-yellow-900/30 p-3 rounded-lg border border-yellow-100 dark:border-yellow-700/50 text-yellow-800 dark:text-yellow-200 text-xs mb-4 transition-colors">
         <i className="fas fa-exclamation-triangle mr-1"></i>
         標示 * 為必填。輸入時間將自動帶入案件日期。可選擇時間來源(如密錄器或AED)，系統會自動校正。<br/>
         若無校正資料，時間預設為 AED 標準時間。

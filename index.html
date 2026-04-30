@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             fontFamily: {
@@ -26,6 +27,25 @@
                 800: '#075985',
                 900: '#0c4a6e',
               }
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              slideUp: {
+                '0%': { opacity: '0', transform: 'translateY(20px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              slideDown: {
+                '0%': { opacity: '0', transform: 'translateY(-20px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              }
+            },
+            animation: {
+              fadeIn: 'fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              slideUp: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              slideDown: 'slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
             }
           }
         }
@@ -34,7 +54,6 @@
     <style>
       body {
         font-family: 'Inter', 'Noto Sans TC', sans-serif;
-        background-color: #f1f5f9;
         -webkit-font-smoothing: antialiased;
       }
       /* Hide scrollbar for cleaner mobile UI */
@@ -45,7 +64,7 @@
     </style>
 
 </head>
-  <body>
+  <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

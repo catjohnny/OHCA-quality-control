@@ -92,7 +92,7 @@ export const DateTimeInput: React.FC<Props> = ({ value, onChange, disabled, clas
         value={dateVal}
         onChange={handleDateChange}
         disabled={disabled}
-        className={`${inputBaseClass} flex-[4] min-w-0`} // Date needs a bit more space
+        className={`${inputBaseClass} flex-[4] min-w-0 bg-transparent dark:text-slate-100 transition-colors`} // Date needs a bit more space
       />
       <input
         type="time"
@@ -100,7 +100,7 @@ export const DateTimeInput: React.FC<Props> = ({ value, onChange, disabled, clas
         value={timeVal}
         onChange={handleTimeChange}
         disabled={disabled}
-        className={`${inputBaseClass} flex-[3] min-w-0`}
+        className={`${inputBaseClass} flex-[3] min-w-0 bg-transparent dark:text-slate-100 transition-colors`}
       />
     </div>
   );

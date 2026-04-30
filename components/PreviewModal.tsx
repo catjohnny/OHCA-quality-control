@@ -9,9 +9,10 @@ interface Props {
   data: AppState;
   onClose: () => void;
   onSubmit: () => void;
+  onToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
-export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
+export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit, onToast }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -279,10 +280,10 @@ ${data.checklist.suggestions ? '建議項目：' + data.checklist.suggestions : 
 
     try {
         await navigator.clipboard.writeText(text);
-        alert('已複製到剪貼簿！');
+        onToast('已複製到剪貼簿！', 'success');
     } catch (err) {
         console.error('Copy failed', err);
-        alert('複製失敗，請手動選取文字');
+        onToast('複製失敗，請手動選取文字', 'error');
     }
   };
 

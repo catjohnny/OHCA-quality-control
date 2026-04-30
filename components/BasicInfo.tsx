@@ -30,19 +30,19 @@ export const BasicInfo: React.FC<Props> = ({ info, onChange }) => {
 
   const renderCheckboxGroup = (label: string, field: keyof BasicInfoType, options: string[]) => (
     <div className="mb-4">
-      <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">{label}</label>
+      <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider transition-colors">{label}</label>
       <div className="space-y-2">
         {options.map(option => {
           const checked = ((info[field] as string[]) || []).includes(option);
           return (
             <label key={option} className="flex items-start space-x-2 cursor-pointer group">
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 checked={checked}
                 onChange={(e) => handleCheckboxChange(field, option, e.target.checked)}
                 className="mt-1 w-4 h-4 text-medical-600 rounded border-slate-300 focus:ring-medical-500 transition-colors"
               />
-              <span className="text-sm text-slate-700 group-hover:text-slate-900 leading-tight">
+              <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white leading-tight transition-colors">
                 {option}
               </span>
             </label>
@@ -55,8 +55,8 @@ export const BasicInfo: React.FC<Props> = ({ info, onChange }) => {
   return (
     <div className="space-y-4 animate-fadeIn">
       {/* Administrative Data */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
-        <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-2">案件資料</h3>
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4 transition-colors">
+        <h3 className="font-bold text-lg text-slate-800 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-2 mb-2 transition-colors">案件資料</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InputGroup
             label="審核者姓名"
@@ -75,7 +75,7 @@ export const BasicInfo: React.FC<Props> = ({ info, onChange }) => {
           <InputGroup
             label="分隊 (限3個中文字以內)"
             type="text"
-            placeholder="例如：新園"
+            placeholder="例如：里港"
             value={info.unit}
             onChange={handleUnitChange}
             required
@@ -105,8 +105,8 @@ export const BasicInfo: React.FC<Props> = ({ info, onChange }) => {
       </div>
 
       {/* Patient Data */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
-        <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-2">患者與後送資訊</h3>
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4 transition-colors">
+        <h3 className="font-bold text-lg text-slate-800 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-2 mb-2 transition-colors">患者與後送資訊</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InputGroup
             label="患者姓名"
@@ -131,8 +131,8 @@ export const BasicInfo: React.FC<Props> = ({ info, onChange }) => {
       </div>
 
       {/* Personnel Data */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
-        <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-2">出勤人員</h3>
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4 transition-colors">
+        <h3 className="font-bold text-lg text-slate-800 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-2 mb-2 transition-colors">出勤人員</h3>
         <div className="grid grid-cols-2 gap-4">
           <InputGroup label="人員 1" value={info.member1} onChange={(e) => onChange('member1', e.target.value)} required />
           <InputGroup label="人員 2" value={info.member2} onChange={(e) => onChange('member2', e.target.value)} required />
@@ -144,19 +144,19 @@ export const BasicInfo: React.FC<Props> = ({ info, onChange }) => {
       </div>
 
       {/* Verification Data (備查資料) */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
-        <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-2">備查資料 (有缺漏再勾選)</h3>
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4 transition-colors">
+        <h3 className="font-bold text-lg text-slate-800 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-2 mb-2 transition-colors">備查資料 (有缺漏再勾選)</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {renderCheckboxGroup("救護紀錄表", "recordForm", QA_CHECKLIST_OPTIONS.recordForm)}
-            {renderCheckboxGroup("AED 紀錄", "aedRecord", QA_CHECKLIST_OPTIONS.aedRecord)}
-            {renderCheckboxGroup("行車紀錄器", "dashcam", QA_CHECKLIST_OPTIONS.dashcam)}
-            {renderCheckboxGroup("密錄器", "bodycam", QA_CHECKLIST_OPTIONS.bodycam)}
+          {renderCheckboxGroup("救護紀錄表", "recordForm", QA_CHECKLIST_OPTIONS.recordForm)}
+          {renderCheckboxGroup("AED 紀錄", "aedRecord", QA_CHECKLIST_OPTIONS.aedRecord)}
+          {renderCheckboxGroup("行車紀錄器", "dashcam", QA_CHECKLIST_OPTIONS.dashcam)}
+          {renderCheckboxGroup("密錄器", "bodycam", QA_CHECKLIST_OPTIONS.bodycam)}
         </div>
       </div>
 
       {/* Scenario Data (Keep for backward compatibility or extra context if needed) */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
-        <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-2">案件情境 (選填)</h3>
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4 transition-colors">
+        <h3 className="font-bold text-lg text-slate-800 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-2 mb-2 transition-colors">案件情境 (選填)</h3>
         <InputGroup
           label="OHCA 類型"
           as="select"

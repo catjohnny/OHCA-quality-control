@@ -21,8 +21,8 @@ export const Checklist: React.FC<Props> = ({ data, onChange }) => {
 
   const renderCheckboxList = (label: string, field: keyof PingtungChecklist, options: string[]) => (
     <div className="mb-4">
-      <label className="block text-sm font-bold text-slate-700 mb-2">{label}</label>
-      <div className="space-y-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
+      <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 transition-colors">{label}</label>
+      <div className="space-y-2 bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border border-slate-100 dark:border-slate-700 transition-colors">
         {options.map(option => {
           const checked = ((data[field] as string[]) || []).includes(option);
           return (
@@ -31,9 +31,9 @@ export const Checklist: React.FC<Props> = ({ data, onChange }) => {
                 type="checkbox" 
                 checked={checked}
                 onChange={(e) => handleCheckboxListChange(field, option, e.target.checked)}
-                className="mt-1 w-4 h-4 text-medical-600 rounded border-slate-300 focus:ring-medical-500 transition-colors"
+                className="mt-1 w-4 h-4 text-medical-600 rounded border-slate-300 dark:border-slate-600 focus:ring-medical-500 transition-colors"
               />
-              <span className="text-sm text-slate-700 group-hover:text-slate-900">
+              <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
                 {option}
               </span>
             </label>
@@ -44,8 +44,8 @@ export const Checklist: React.FC<Props> = ({ data, onChange }) => {
   );
 
   const renderBooleanToggle = (label: string, field: keyof PingtungChecklist) => (
-    <div className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg mb-2 shadow-sm">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+    <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg mb-2 shadow-sm transition-colors">
+      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{label}</span>
       <button
         onClick={() => onChange(field, !data[field])}
         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-medical-500 focus:ring-offset-2 ${
@@ -64,8 +64,8 @@ export const Checklist: React.FC<Props> = ({ data, onChange }) => {
   return (
     <div className="space-y-6 animate-fadeIn pb-24">
       
-      <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-        <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-4 flex items-center">
+      <div className="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 transition-colors">
+        <h3 className="font-bold text-lg text-slate-800 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-2 mb-4 flex items-center transition-colors">
           <i className="fas fa-clipboard-list text-medical-500 mr-2"></i> 現場急救流程建議
         </h3>
         {renderCheckboxList("急救意願詢問", "askWillingness", QA_CHECKLIST_OPTIONS.askWillingness)}
@@ -79,8 +79,8 @@ export const Checklist: React.FC<Props> = ({ data, onChange }) => {
         {renderCheckboxList("不正確處置", "incorrectTreatment", QA_CHECKLIST_OPTIONS.incorrectTreatment)}
       </div>
 
-      <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-        <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-4 flex items-center">
+      <div className="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 transition-colors">
+        <h3 className="font-bold text-lg text-slate-800 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-2 mb-4 flex items-center transition-colors">
           <i className="fas fa-heartbeat text-medical-500 mr-2"></i> 壓胸流程建議
         </h3>
         {renderBooleanToggle("沒有換手", "cprNoSwap")}
@@ -89,8 +89,8 @@ export const Checklist: React.FC<Props> = ({ data, onChange }) => {
         {renderCheckboxList("姿勢有誤", "postureError", QA_CHECKLIST_OPTIONS.postureError)}
       </div>
 
-      <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-        <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-4 flex items-center">
+      <div className="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 transition-colors">
+        <h3 className="font-bold text-lg text-slate-800 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-2 mb-4 flex items-center transition-colors">
           <i className="fas fa-lungs text-medical-500 mr-2"></i> 呼吸道處置
         </h3>
         {renderCheckboxList("呼吸道處置缺失", "airwayTreatment", QA_CHECKLIST_OPTIONS.airwayTreatment)}
@@ -98,8 +98,8 @@ export const Checklist: React.FC<Props> = ({ data, onChange }) => {
         {renderCheckboxList("沒有給100%氧氣治療", "no100PercentOxygen", QA_CHECKLIST_OPTIONS.no100PercentOxygen)}
       </div>
 
-      <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-        <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-4 flex items-center">
+      <div className="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 transition-colors">
+        <h3 className="font-bold text-lg text-slate-800 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-2 mb-4 flex items-center transition-colors">
           <i className="fas fa-bolt text-medical-500 mr-2"></i> AED/MCPR 操作
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -115,8 +115,8 @@ export const Checklist: React.FC<Props> = ({ data, onChange }) => {
         </div>
       </div>
 
-      <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-        <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-4 flex items-center">
+      <div className="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 transition-colors">
+        <h3 className="font-bold text-lg text-slate-800 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-2 mb-4 flex items-center transition-colors">
           <i className="fas fa-star text-medical-500 mr-2"></i> 總評與計分
         </h3>
         <div className="space-y-4">
@@ -128,25 +128,25 @@ export const Checklist: React.FC<Props> = ({ data, onChange }) => {
             onChange={(e) => onChange('treatmentLevel', e.target.value)}
           />
           <div className="mb-4">
-            <label className="block text-sm font-bold text-slate-700 mb-2">其他建議事項_重大缺失</label>
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 transition-colors">其他建議事項_重大缺失</label>
             <textarea
               value={data.majorFlaws}
               onChange={(e) => onChange('majorFlaws', e.target.value)}
-              className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent resize-y min-h-[100px]"
+              className="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded-lg p-3 outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent resize-y min-h-[100px] transition-colors"
               placeholder="請填寫重大缺失..."
             />
           </div>
           <div className="mb-4">
-            <label className="block text-sm font-bold text-slate-700 mb-2">建議項目</label>
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 transition-colors">建議項目</label>
             <textarea
               value={data.suggestions}
               onChange={(e) => onChange('suggestions', e.target.value)}
-              className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent resize-y min-h-[100px]"
+              className="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded-lg p-3 outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent resize-y min-h-[100px] transition-colors"
               placeholder="請填寫建議項目..."
             />
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-100">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-100 dark:border-slate-700 transition-colors">
             <InputGroup
               label="設定列_救護紀錄表未填寫"
               type="number"
