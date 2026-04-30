@@ -2,8 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { AppState, TimeRecord, InterruptionItem } from '../types';
 import { calculateCorrectedAedTime, formatTimeDisplay } from '../services/timeUtils';
 
-const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbzGr7TNFZqyWhpkBpReoHhjV2fO0nmndtA9oKh3ZyquTbl1ZCLpTGH4mV2XCkfzvEr8fg/exec"; 
-const GOOGLE_SHEET_URL: string = "https://docs.google.com/spreadsheets/d/1DxjxcX5eklxkuXsQwRphw1z_eT8AOgD9OJavBCpjfcM/edit?gid=0#gid=0";
+const GOOGLE_SCRIPT_URL: string = import.meta.env.VITE_GOOGLE_SCRIPT_URL || ""; 
+const GOOGLE_SHEET_URL: string = import.meta.env.VITE_GOOGLE_SHEET_URL || "";
 
 interface Props {
   data: AppState;

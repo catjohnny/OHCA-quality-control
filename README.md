@@ -1,20 +1,44 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# OHCA 品管系統 (OHCA Quality Control System)
 
-# Run and deploy your AI Studio app
+這是一個專為新北市 OHCA（到院前心肺功能停止）案件設計的高精度品管系統。用於記錄、校正並分析緊急救護勤務中的時間軸與救護處置數據。
 
-This contains everything you need to run your app locally.
+## 主要功能
 
-View your app in AI Studio: https://ai.studio/apps/drive/1ogPFNEM5m94UqkG1KQO1z_0fG9w_N7hd
+- **時間校正**：校正密錄器與 AED 之間的時間落差。
+- **時間紀錄**：記錄接觸患者、判斷 OHCA、CPR 開始、貼片、給藥等關鍵時間點。
+- **中斷分析**：自動計算貼片前與 MCPR 架設前的 CPR 中斷時間。
+- **CCF 計算**：自動計算胸外按壓分率 (Chest Compression Fraction)。
+- **自動上傳**：將品管結果自動彙整並上傳至 Google Sheets 進行後續分析。
 
-## Run Locally
+## 開發與執行
 
-**Prerequisites:**  Node.js
+### 前置作業
 
+- 安裝 [Node.js](https://nodejs.org/)
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### 本地開發環境設置
+
+1. 安裝依賴套件：
+
+   ```bash
+   npm install
+   ```
+
+2. 啟動開發伺服器：
+
+   ```bash
+   npm run dev
+   ```
+
+3. 建置生產版本：
+
+   ```bash
+   npm run build
+   ```
+
+## 技術棧
+
+- **Frontend**: React + TypeScript
+- **Styling**: Tailwind CSS
+- **Bundler**: Vite
+- **Storage**: 待定*

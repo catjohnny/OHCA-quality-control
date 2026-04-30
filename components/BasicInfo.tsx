@@ -13,7 +13,7 @@ export const BasicInfo: React.FC<Props> = ({ info, onChange }) => {
   const handleCaseIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange('caseId', e.target.value);
   };
-  
+
   const handleUnitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange('unit', e.target.value);
   };
@@ -54,22 +54,22 @@ export const BasicInfo: React.FC<Props> = ({ info, onChange }) => {
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputGroup
-                label="案件發生日期"
-                type="date"
-                value={info.date}
-                onChange={(e) => onChange('date', e.target.value)}
-                required
-            />
-            <InputGroup
-                label="案件編號 (12碼-1碼-1碼)"
-                placeholder="251202199862-1-1"
-                value={info.caseId}
-                onChange={handleCaseIdChange}
-                required
-                pattern="\d{12}-\d{1}-\d{1}"
-                error={info.caseId && !/^\d{12}-\d{1}-\d{1}$/.test(info.caseId) ? "格式錯誤" : undefined}
-            />
+          <InputGroup
+            label="案件發生日期"
+            type="date"
+            value={info.date}
+            onChange={(e) => onChange('date', e.target.value)}
+            required
+          />
+          <InputGroup
+            label="輸入TEMSISD"
+            placeholder="251202199862-1-1"
+            value={info.caseId}
+            onChange={handleCaseIdChange}
+            required
+            pattern="\d{12}-\d{1}-\d{1}"
+            error={info.caseId && !/^\d{12}-\d{1}-\d{1}$/.test(info.caseId) ? "格式錯誤" : undefined}
+          />
         </div>
       </div>
 
