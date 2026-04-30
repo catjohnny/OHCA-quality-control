@@ -64,17 +64,25 @@ export const Interruption: React.FC<Props> = ({ records, onChange }) => {
     items: InterruptionItem[],
     total: number,
     offsetIndex: number
-  ) => (
-    <div className="mb-8">
-      <div className="flex justify-between items-center mb-3 border-b border-slate-200 pb-2">
-        <h3 className="font-bold text-slate-800">{title}</h3>
-        <span className="text-sm bg-red-100 text-red-800 px-2 py-1 rounded font-mono font-bold">
-          總和: {total} 秒
-        </span>
-      </div>
+  ) => {
+    const lastFilledIndex = items.reduce((lastIdx, item, idx) => {
+      if (item.start || item.end || item.reason) return idx;
+      return lastIdx;
+    }, -1);
+    const visibleCount = Math.min(items.length, Math.max(3, lastFilledIndex + 2));
+    const visibleItems = items.slice(0, visibleCount);
+
+    return (
+      <div className="mb-8">
+        <div className="flex justify-between items-center mb-3 border-b border-slate-200 dark:border-slate-700 pb-2 transition-colors">
+          <h3 className="font-bold text-slate-800 dark:text-white transition-colors">{title}</h3>
+          <span className="text-sm bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 px-2 py-1 rounded font-mono font-bold transition-colors">
+            總和: {total} 秒
+          </span>
+        </div>
       
       <div className="space-y-3">
-        {items.map((item, index) => {
+        {visibleItems.map((item, index) => {
           const globalIndex = offsetIndex + index;
           const startSec = calculateSeconds(item.start);
           const endSec = calculateSeconds(item.end);
@@ -83,33 +91,33 @@ export const Interruption: React.FC<Props> = ({ records, onChange }) => {
           const isReasonMissing = isFilled && !item.reason;
 
           return (
-            <div key={item.id} className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm text-sm">
+            <div key={item.id} className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm text-sm transition-colors">
               <div className="flex justify-between items-center mb-2">
-                 <span className="font-semibold text-slate-500 text-xs">紀錄 {index + 1}</span>
-                 {duration > 0 && <span className="text-xs font-mono text-medical-600">{duration}秒</span>}
+                 <span className="font-semibold text-slate-500 dark:text-slate-400 text-xs transition-colors">紀錄 {index + 1}</span>
+                 {duration > 0 && <span className="text-xs font-mono text-medical-600 dark:text-medical-400">{duration}秒</span>}
               </div>
               
               <div className="grid grid-cols-2 gap-2 mb-2">
                 <div>
-                   <label className="text-[10px] text-slate-400 block mb-1">開始 (MMSS)</label>
+                   <label className="text-[10px] text-slate-400 dark:text-slate-500 block mb-1 transition-colors">開始 (MMSS)</label>
                    <input
                       ref={(el) => { startRefs.current[globalIndex] = el }}
                       type="tel"
                       placeholder="例如 1106"
                       value={item.start}
                       onChange={(e) => handleTimeInput(sectionKey, index, 'start', e.target.value, globalIndex)}
-                      className={`w-full text-xs p-1 border rounded focus:ring-1 focus:ring-medical-500 outline-none transition-colors tracking-widest text-center ${item.start ? 'bg-white border-medical-200' : 'bg-slate-50 border-slate-200'}`}
+                      className={`w-full text-xs p-1 border rounded focus:ring-1 focus:ring-medical-500 outline-none transition-colors tracking-widest text-center ${item.start ? 'bg-white dark:bg-slate-700 border-medical-200 dark:border-slate-600 text-slate-800 dark:text-slate-100' : 'bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100'}`}
                    />
                 </div>
                 <div>
-                   <label className="text-[10px] text-slate-400 block mb-1">結束 (MMSS)</label>
+                   <label className="text-[10px] text-slate-400 dark:text-slate-500 block mb-1 transition-colors">結束 (MMSS)</label>
                    <input
                       ref={(el) => { endRefs.current[globalIndex] = el }}
                       type="tel"
                       placeholder="例如 1130"
                       value={item.end}
                       onChange={(e) => handleTimeInput(sectionKey, index, 'end', e.target.value, globalIndex)}
-                      className={`w-full text-xs p-1 border rounded focus:ring-1 focus:ring-medical-500 outline-none transition-colors tracking-widest text-center ${item.end ? 'bg-white border-medical-200' : 'bg-slate-50 border-slate-200'}`}
+                      className={`w-full text-xs p-1 border rounded focus:ring-1 focus:ring-medical-500 outline-none transition-colors tracking-widest text-center ${item.end ? 'bg-white dark:bg-slate-700 border-medical-200 dark:border-slate-600 text-slate-800 dark:text-slate-100' : 'bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100'}`}
                    />
                 </div>
               </div>
@@ -119,14 +127,14 @@ export const Interruption: React.FC<Props> = ({ records, onChange }) => {
                     ref={(el) => { reasonRefs.current[globalIndex] = el }}
                     value={item.reason}
                     onChange={(e) => onChange(sectionKey, index, 'reason', e.target.value)}
-                    className={`w-full text-xs p-2 border rounded appearance-none ${isReasonMissing ? 'border-red-500 bg-red-50 focus:ring-red-200' : 'bg-slate-50 focus:bg-white'}`}
+                    className={`w-full text-xs p-2 border rounded appearance-none transition-colors ${isReasonMissing ? 'border-red-500 dark:border-red-500/50 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 focus:ring-red-200' : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-700'}`}
                 >
                     <option value="">選擇中斷原因 {isFilled ? '(必填)' : ''}</option>
                     {INTERRUPTION_REASONS.map(r => (
                     <option key={r} value={r}>{r}</option>
                     ))}
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500 dark:text-slate-400">
                     <i className="fas fa-chevron-down text-xs"></i>
                 </div>
               </div>
@@ -137,16 +145,17 @@ export const Interruption: React.FC<Props> = ({ records, onChange }) => {
       </div>
     </div>
   );
+};
 
   return (
     <div className="animate-fadeIn pb-24">
-       <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 text-blue-800 text-xs mb-4">
+       <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg border border-blue-100 dark:border-blue-800/50 text-blue-800 dark:text-blue-200 text-xs mb-4 transition-colors">
         <i className="fas fa-info-circle mr-1"></i>
         請輸入 4 位數時間 (MMSS)，例如 1106 代表 11分06秒。填寫開始後會自動跳轉。
       </div>
       
-      {renderSection('貼上貼片前 (5筆)', 'beforePads', records.beforePads, totalBeforePads, 0)}
-      {renderSection('架設 MCPR 前 (10筆)', 'beforeMcpr', records.beforeMcpr, totalBeforeMcpr, 5)}
+      {renderSection('貼上貼片前', 'beforePads', records.beforePads, totalBeforePads, 0)}
+      {renderSection('架設 MCPR 前', 'beforeMcpr', records.beforeMcpr, totalBeforeMcpr, 5)}
     </div>
   );
 };
