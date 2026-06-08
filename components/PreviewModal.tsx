@@ -3,7 +3,7 @@ import { AppState, InterruptionItem } from '../types';
 import { formatTimeDisplay } from '../services/timeUtils';
 import { buildOrderedRecord, getCorrectedTimes, validateRecord } from '../services/recordExport';
 
-const GOOGLE_SCRIPT_URL: string = "hhttps://script.google.com/macros/s/AKfycbwGKSjc4Diq0K-NkQ8N6-jwHbHtkVWpOzPF0bNWAeNS_jYtXKJrADP5nGMa2dGiCFq_7g/exec"; 
+const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbxyAKc44zmIyPndSVNuDpiIqKzR1Q-Nom1pT2p9k_VZMAUB6vBlkNUOel_bYJcnpfLMTA/exec"; 
 const GOOGLE_SHEET_URL: string = "https://docs.google.com/spreadsheets/d/1DxjxcX5eklxkuXsQwRphw1z_eT8AOgD9OJavBCpjfcM/edit?gid=20459570#gid=20459570";
 
 interface Props {
