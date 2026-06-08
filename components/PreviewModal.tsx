@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { AppState, TimeRecord, InterruptionItem } from '../types';
-import { calculateCorrectedAedTime, formatTimeDisplay } from '../services/timeUtils';
+import { AppState, InterruptionItem } from '../types';
+import { formatTimeDisplay } from '../services/timeUtils';
+import { buildOrderedRecord, getCorrectedTimes, validateRecord } from '../services/recordExport';
 
 const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbzGr7TNFZqyWhpkBpReoHhjV2fO0nmndtA9oKh3ZyquTbl1ZCLpTGH4mV2XCkfzvEr8fg/exec"; 
 const GOOGLE_SHEET_URL: string = "https://docs.google.com/spreadsheets/d/1DxjxcX5eklxkuXsQwRphw1z_eT8AOgD9OJavBCpjfcM/edit?gid=0#gid=0";
@@ -18,115 +19,12 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
 
   // --- Calculations for Times (Moved up for validation) ---
   const times = useMemo(() => {
-    const getT = (key: keyof TimeRecord) => 
-      calculateCorrectedAedTime(key, data.timeRecords[key], data.calibration);
-    
-    return {
-      found: getT('found'),
-      contact: getT('contact'),
-      ohca: getT('ohcaJudgment'),
-      cpr: getT('cprStart'),
-      pads: getT('padsOn'),
-      vent: getT('firstVentilation'),
-      mcpr: getT('mcprSetup'),
-      med: getT('firstMed'),
-      airway: getT('airway'),
-      aedOff: getT('aedOff'),
-      aedOn: getT('powerOn'), 
-      rosc: getT('rosc'),
-    };
+    return getCorrectedTimes(data);
   }, [data]);
 
   // --- Validation Logic ---
   const { missingFields, logicErrors } = useMemo(() => {
-    const missing: string[] = [];
-    const logic: string[] = [];
-    const { basicInfo, technicalInfo, timeRecords } = data;
-
-    // 1. Basic Info Validation
-    if (!basicInfo.reviewer) missing.push("基本資料: 審核者姓名");
-    if (!basicInfo.battalion) missing.push("基本資料: 大隊別");
-    if (!basicInfo.unit) missing.push("基本資料: 分隊");
-    if (!basicInfo.caseId) missing.push("基本資料: 案件編號");
-    if (!basicInfo.date) missing.push("基本資料: 案件發生日期");
-    if (!basicInfo.ohcaType) missing.push("基本資料: OHCA 類型");
-    if (!basicInfo.notificationTime) missing.push("基本資料: 發現/通報時機");
-    if (!basicInfo.member1) missing.push("基本資料: 人員 1");
-    if (!basicInfo.member2) missing.push("基本資料: 人員 2");
-
-    // 2. Technical Info Validation
-    if (!technicalInfo.aedPadCorrect) missing.push("處置認列: AED 貼片位置");
-    if (!technicalInfo.checkPulse) missing.push("處置認列: 檢查頸動脈");
-    if (!technicalInfo.useCompressor) missing.push("處置認列: 壓胸機有無使用");
-    if (!technicalInfo.initialRhythm) missing.push("處置認列: AED 初始心律");
-    // endoAttempts is number (0-5), default is 0 so it's always present
-    
-    // 3. Time Records Required Check
-    const checkTime = (key: keyof TimeRecord, label: string) => {
-        const val = timeRecords[key];
-        if (typeof val === 'string') {
-            if (!val) missing.push(`時間紀錄: ${label}`);
-        } else {
-            // For EMT objects, check if at least one EMT has a value
-            if (!val.emt1 && !val.emt2 && !val.emt3) missing.push(`時間紀錄: ${label}`);
-        }
-    };
-
-    const checkConditionalTime = (key: keyof TimeRecord, label: string) => {
-        const val = timeRecords[key] as any;
-        // Check if N/A is selected OR if any value is present
-        const isNA = val.emt1 === 'N/A' || val.emt2 === 'N/A' || val.emt3 === 'N/A';
-        const hasValue = val.emt1 || val.emt2 || val.emt3;
-        
-        if (!isNA && !hasValue) {
-            missing.push(`時間紀錄: ${label}`);
-        }
-    };
-
-    // Required fields
-    checkTime('found', '發現患者');
-    checkTime('contact', '接觸患者');
-    checkTime('ohcaJudgment', '判斷 OHCA');
-    checkTime('cprStart', 'CPR 開始');
-    checkTime('powerOn', 'Power ON');
-    checkTime('padsOn', '貼上貼片');
-    checkTime('firstMed', '第一次給藥');
-    checkTime('aedOff', 'AED 關機');
-
-    // Conditional fields (Can be N/A)
-    checkConditionalTime('firstVentilation', '第一次給氣');
-    checkConditionalTime('mcprSetup', 'MCPR 架設');
-    checkConditionalTime('airway', '呼吸道建立時間');
-
-    // 4. Time Logic Validation (Chronological Order)
-    const checkOrder = (earlier: Date | null, later: Date | null, labelEarlier: string, labelLater: string) => {
-        // Only check if both times exist. If one is missing, it's caught by "missing fields" or ignored if optional.
-        if (earlier && later) {
-            if (later.getTime() < earlier.getTime()) {
-                 logic.push(`時間順序錯誤：[${labelLater}] 不能早於 [${labelEarlier}]`);
-            }
-        }
-    };
-
-    // Sequence based on TimeRecording.tsx
-    checkOrder(times.found, times.contact, '發現患者', '接觸患者');
-    checkOrder(times.contact, times.ohca, '接觸患者', '判斷OHCA');
-    checkOrder(times.ohca, times.cpr, '判斷OHCA', 'CPR開始');
-    checkOrder(times.ohca, times.aedOn, '判斷OHCA', 'Power ON');
-    checkOrder(times.aedOn, times.pads, 'Power ON', '貼上貼片');
-    checkOrder(times.ohca, times.vent, '判斷OHCA', '第一次給氣');
-    checkOrder(times.cpr, times.mcpr, 'CPR開始', 'MCPR架設');
-    checkOrder(times.ohca, times.med, '判斷OHCA', '第一次給藥');
-    checkOrder(times.ohca, times.airway, '判斷OHCA', '呼吸道建立');
-    
-    // AED Off Logic: Must be after MCPR if MCPR exists, otherwise after Pads
-    if (times.mcpr) {
-        checkOrder(times.mcpr, times.aedOff, 'MCPR架設', 'AED關機');
-    } else {
-        checkOrder(times.pads, times.aedOff, '貼上貼片', 'AED關機');
-    }
-
-    return { missingFields: missing, logicErrors: logic };
+    return validateRecord(data, times);
   }, [data, times]);
 
   const isValid = missingFields.length === 0 && logicErrors.length === 0;
@@ -328,6 +226,10 @@ export const PreviewModal: React.FC<Props> = ({ data, onClose, onSubmit }) => {
             technical: {
                 ...data.technicalInfo
             },
+            feedbackPatch: {
+                ...data.feedbackPatchInfo
+            },
+            orderedRecord: buildOrderedRecord(data),
             detailedInterruptions
         };
 
@@ -536,9 +438,26 @@ ${data.basicInfo.memo || '無'}`;
                 {renderSimpleRow('AED 貼片位置是否正確', data.technicalInfo.aedPadCorrect || '--')}
                 {renderSimpleRow('是否檢查頸動脈', data.technicalInfo.checkPulse || '--')}
                 {renderSimpleRow('壓胸機有無使用', data.technicalInfo.useCompressor || '--')}
+                {renderSimpleRow('AED 初始心律', data.technicalInfo.initialRhythm || '--')}
+                {renderSimpleRow('首次電擊後心律', data.technicalInfo.postShockRhythm || '--')}
                 {renderSimpleRow('插管嘗試次數', data.technicalInfo.endoAttempts.toString())}
                 {renderSimpleRow('進階呼吸道器材', data.technicalInfo.airwayDevice || '--')}
+                {renderSimpleRow('建立呼吸道中斷(秒)', data.technicalInfo.airwayInterruptionSeconds || '--')}
                 {renderSimpleRow('ETCO2 有無放置', data.technicalInfo.etco2Used || '--')}
+                {renderSimpleRow('ETCO2 數值 (mmHg)', data.technicalInfo.etco2Value || '--')}
+                {renderSimpleRow('到院前啟動ECMO', data.technicalInfo.prehospitalEcmo || '--')}
+            </div>
+
+            {renderSectionHeader('回饋貼片', 'fa-wave-square')}
+            <div className="bg-white rounded-lg border border-slate-200 px-4 py-1">
+                {renderSimpleRow('架設MCPR前平均徒手按壓深度(cm)', data.feedbackPatchInfo.manualDepthBeforeMcpr || '--')}
+                {renderSimpleRow('架設MCPR前平均徒手按壓速率(cpm)', data.feedbackPatchInfo.manualRateBeforeMcpr || '--')}
+                {renderSimpleRow('架設MCPR前平均徒手釋放速度(mm/s)', data.feedbackPatchInfo.manualReleaseVelocityBeforeMcpr || '--')}
+                {renderSimpleRow('目標中 - 徒手深度(%)', data.feedbackPatchInfo.targetManualDepthPercent || '--')}
+                {renderSimpleRow('目標中 - 徒手速率(%)', data.feedbackPatchInfo.targetManualRatePercent || '--')}
+                {renderSimpleRow('目標中 - 徒手按壓(%)', data.feedbackPatchInfo.targetManualCompressionPercent || '--')}
+                {renderSimpleRow('去顫前停滯時間(未電擊=N/A)', data.feedbackPatchInfo.preShockPauseTime || '--')}
+                {renderSimpleRow('去顫後停滯時間(未電擊=N/A)', data.feedbackPatchInfo.postShockPauseTime || '--')}
             </div>
 
             {/* Error Message */}

@@ -2,7 +2,14 @@
 import React from 'react';
 import { TechnicalInfo, BasicInfo } from '../types';
 import { InputGroup } from './InputGroup';
-import { PULSE_CHECK_OPTIONS, RHYTHM_OPTIONS, AIRWAY_OPTIONS, ENDO_ATTEMPTS_OPTIONS } from '../constants';
+import {
+  PULSE_CHECK_OPTIONS,
+  RHYTHM_OPTIONS,
+  POST_SHOCK_RHYTHM_OPTIONS,
+  AIRWAY_OPTIONS,
+  ENDO_ATTEMPTS_OPTIONS,
+  PREHOSPITAL_ECMO_OPTIONS
+} from '../constants';
 
 interface Props {
   info: TechnicalInfo;
@@ -66,6 +73,14 @@ export const TechnicalSkills: React.FC<Props> = ({ info, basicInfo, onChange, on
                 onChange={(e) => onChange('initialRhythm', e.target.value)}
                 required
             />
+            <InputGroup
+                label="AED初始心律首次電擊之後的心律"
+                as="select"
+                options={POST_SHOCK_RHYTHM_OPTIONS}
+                value={info.postShockRhythm}
+                onChange={(e) => onChange('postShockRhythm', e.target.value)}
+                required
+            />
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="mb-4 w-full">
                     <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -83,6 +98,15 @@ export const TechnicalSkills: React.FC<Props> = ({ info, basicInfo, onChange, on
                 </div>
                 
                 {renderStyledSelect('進階呼吸道器材', 'airwayDevice', AIRWAY_OPTIONS)}
+                <InputGroup
+                    label="建立呼吸道中斷(秒)"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={info.airwayInterruptionSeconds}
+                    onChange={(e) => onChange('airwayInterruptionSeconds', e.target.value)}
+                    required
+                />
             </div>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="mb-4 w-full">
@@ -106,6 +130,13 @@ export const TechnicalSkills: React.FC<Props> = ({ info, basicInfo, onChange, on
                 value={info.etco2Value}
                 onChange={(e) => onChange('etco2Value', e.target.value)}
                 disabled={info.etco2Used !== 'Yes'}
+                />
+                <InputGroup
+                label="到院前啟動ECMO"
+                as="select"
+                options={PREHOSPITAL_ECMO_OPTIONS}
+                value={info.prehospitalEcmo}
+                onChange={(e) => onChange('prehospitalEcmo', e.target.value)}
                 />
             </div>
         </div>

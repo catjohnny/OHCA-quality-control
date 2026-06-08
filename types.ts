@@ -49,17 +49,31 @@ export interface TechnicalInfo {
   checkPulse: string;
   useCompressor: string;
   initialRhythm: string;
+  postShockRhythm: string;
   endoAttempts: number;
   airwayDevice: string;
+  airwayInterruptionSeconds: string;
   
   // Existing TechnicalInfo
   etco2Used: string;
   etco2Value: string;
+  prehospitalEcmo: string;
   ivOperator: string;
   ioOperator: string;
   endoOperator: string;
   teamLeader: string;
   aedPadCorrect: string;
+}
+
+export interface FeedbackPatchInfo {
+  manualDepthBeforeMcpr: string;
+  manualRateBeforeMcpr: string;
+  manualReleaseVelocityBeforeMcpr: string;
+  targetManualDepthPercent: string;
+  targetManualRatePercent: string;
+  targetManualCompressionPercent: string;
+  preShockPauseTime: string;
+  postShockPauseTime: string;
 }
 
 export interface InterruptionItem {
@@ -79,6 +93,7 @@ export interface AppState {
   timeRecords: TimeRecord;
   basicInfo: BasicInfo;
   technicalInfo: TechnicalInfo;
+  feedbackPatchInfo: FeedbackPatchInfo;
   interruptionRecords: InterruptionRecords;
 }
 
@@ -126,15 +141,28 @@ export const INITIAL_STATE: AppState = {
     checkPulse: '',
     useCompressor: '',
     initialRhythm: '',
+    postShockRhythm: '',
     endoAttempts: 0,
     airwayDevice: '',
+    airwayInterruptionSeconds: '',
     etco2Used: '',
     etco2Value: '',
+    prehospitalEcmo: '',
     ivOperator: '',
     ioOperator: '',
     endoOperator: '',
     teamLeader: '',
     aedPadCorrect: '',
+  },
+  feedbackPatchInfo: {
+    manualDepthBeforeMcpr: '',
+    manualRateBeforeMcpr: '',
+    manualReleaseVelocityBeforeMcpr: '',
+    targetManualDepthPercent: '',
+    targetManualRatePercent: '',
+    targetManualCompressionPercent: '',
+    preShockPauseTime: '',
+    postShockPauseTime: '',
   },
   interruptionRecords: {
     beforePads: createEmptyInterruptions(5),

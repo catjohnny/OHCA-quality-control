@@ -31,6 +31,21 @@ export const RHYTHM_OPTIONS = [
   "6. 其他"
 ];
 
+export const POST_SHOCK_RHYTHM_OPTIONS = [
+  "0. 無電擊",
+  "1. VF",
+  "2. VT",
+  "3. ASYSTOLE",
+  "4. PEA",
+  "5. bradycardia (≦50下/分鐘)",
+  "6. 其他"
+];
+
+export const PREHOSPITAL_ECMO_OPTIONS = [
+  "0. 有通報",
+  "1. 未通報"
+];
+
 export const AIRWAY_OPTIONS = [
   "0. 沒有建立進階呼吸道",
   "1. SGA",

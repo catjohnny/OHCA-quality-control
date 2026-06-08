@@ -4,9 +4,11 @@ import { TimeCalibration } from './components/TimeCalibration';
 import { TimeRecording } from './components/TimeRecording';
 import { BasicInfo } from './components/BasicInfo';
 import { TechnicalSkills } from './components/TechnicalSkills';
+import { FeedbackPatch } from './components/FeedbackPatch';
 import { Interruption } from './components/Interruption';
 import { PreviewModal } from './components/PreviewModal';
-import { AppState, INITIAL_STATE, InterruptionItem, InterruptionRecords } from './types';
+import { AppState, FeedbackPatchInfo, INITIAL_STATE, InterruptionItem, InterruptionRecords } from './types';
+import { exportRecordCsv, exportRecordExcel, validateRecord } from './services/recordExport';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -37,7 +39,8 @@ const App: React.FC = () => {
             },
             interruptionRecords: parsed.interruptionRecords || INITIAL_STATE.interruptionRecords,
             basicInfo: { ...INITIAL_STATE.basicInfo, ...parsed.basicInfo },
-            technicalInfo: { ...INITIAL_STATE.technicalInfo, ...parsed.technicalInfo }
+            technicalInfo: { ...INITIAL_STATE.technicalInfo, ...parsed.technicalInfo },
+            feedbackPatchInfo: { ...INITIAL_STATE.feedbackPatchInfo, ...parsed.feedbackPatchInfo }
         });
       } catch (e) {
         console.error("Failed to load state", e);
@@ -102,6 +105,25 @@ const App: React.FC = () => {
     setData(prev => ({ ...prev, technicalInfo: { ...prev.technicalInfo, [field]: value } }));
   };
 
+  const updateFeedbackPatch = (field: keyof FeedbackPatchInfo, value: string) => {
+    setData(prev => ({ ...prev, feedbackPatchInfo: { ...prev.feedbackPatchInfo, [field]: value } }));
+  };
+
+  const handleExport = () => {
+    const validation = validateRecord(data);
+    if (!validation.isValid) {
+      setShowPreview(true);
+      return;
+    }
+
+    const format = window.confirm("按「確定」匯出 Excel，按「取消」匯出 CSV。");
+    if (format) {
+      exportRecordExcel(data);
+    } else {
+      exportRecordCsv(data);
+    }
+  };
+
   const handleSubmitToGoogleSheet = () => {
       // Logic handled in PreviewModal
   };
@@ -149,16 +171,20 @@ const App: React.FC = () => {
             checkPulse: '',
             useCompressor: '',
             initialRhythm: '',
+            postShockRhythm: '',
             endoAttempts: 0,
             airwayDevice: '',
+            airwayInterruptionSeconds: '',
             etco2Used: '', // Reset to empty string (Please Select)
             etco2Value: '',
+            prehospitalEcmo: '',
             ivOperator: '',
             ioOperator: '',
             endoOperator: '',
             teamLeader: '',
             aedPadCorrect: '',
-        }
+        },
+        feedbackPatchInfo: INITIAL_STATE.feedbackPatchInfo
       };
       setData(freshState);
       setActiveTab(0);
@@ -200,6 +226,11 @@ const App: React.FC = () => {
         crewMembers={crewMembers} 
       /> 
     },
+    {
+      title: '回饋貼片',
+      icon: 'fa-wave-square',
+      component: <FeedbackPatch info={data.feedbackPatchInfo} onChange={updateFeedbackPatch} />
+    },
   ];
 
   return (
@@ -217,7 +248,7 @@ const App: React.FC = () => {
                     <div>新北 OHCA</div>
                     <div>品管系統</div>
                 </h1>
-                <span className="text-[10px] text-slate-400 font-mono">Ver.20251203.2</span>
+                <span className="text-[10px] text-slate-400 font-mono">Ver.3</span>
             </div>
         </div>
         <div className="flex gap-2">
@@ -226,6 +257,12 @@ const App: React.FC = () => {
                 className="bg-white text-slate-600 border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center"
             >
                 <i className="fas fa-plus mr-1"></i> <span className="inline">新案件</span>
+            </button>
+            <button
+                onClick={handleExport}
+                className="bg-emerald-600 text-white px-3 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-md flex items-center"
+            >
+                <i className="fas fa-file-export mr-1"></i> <span className="inline">匯出</span>
             </button>
             <button 
                 onClick={() => setShowPreview(true)}
@@ -245,6 +282,8 @@ const App: React.FC = () => {
                 {activeTab === 1 && "請校正密錄器與 AED 時間"}
                 {activeTab === 2 && "輸入時間，系統將自動套用校正"}
                 {activeTab === 3 && "紀錄 CPR 中斷原因與時間"}
+                {activeTab === 4 && "確認處置認列與技術執行紀錄"}
+                {activeTab === 5 && "填寫回饋貼片數值，未取得可留空"}
             </p>
         </div>
         
