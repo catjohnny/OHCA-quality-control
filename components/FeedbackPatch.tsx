@@ -20,8 +20,8 @@ const fields: Array<{ key: keyof FeedbackPatchInfo; label: string; placeholder?:
 
 export const FeedbackPatch: React.FC<Props> = ({ info, onChange }) => {
   return (
-    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 animate-fadeIn">
-      <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-4">回饋貼片</h3>
+    <div className="bg-white p-4 rounded-lg shadow-sm border border-medical-100 animate-fadeIn">
+      <h3 className="font-bold text-lg text-medical-600 border-b border-medical-100 pb-2 mb-4">回饋貼片</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {fields.map((field) => (
           <InputGroup

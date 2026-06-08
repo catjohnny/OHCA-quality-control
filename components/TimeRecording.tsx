@@ -119,7 +119,7 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
     }
 
     return `w-full text-xs p-1 h-10 border rounded focus:ring-1 focus:ring-medical-500 outline-none text-center transition-colors
-      ${hasValue ? 'bg-white border-medical-200' : 'bg-slate-50 border-slate-200'}`;
+      ${hasValue ? 'bg-white border-medical-200' : 'bg-medical-50 border-medical-100'}`;
   };
 
   const renderRow = (
@@ -134,9 +134,9 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
     const isNoCalibration = ['powerOn', 'aedOff', 'firstShock'].includes(fieldKey);
     
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4">
-        <div className="bg-slate-50 p-3 border-b border-slate-100 flex justify-between items-center">
-          <span className="font-bold text-slate-800 text-sm">
+      <div className="bg-white rounded-lg shadow-sm border border-medical-100 overflow-hidden mb-4">
+        <div className="bg-medical-50 p-3 border-b border-medical-100 flex justify-between items-center">
+          <span className="font-bold text-medical-600 text-sm">
             {label} {isNoCalibration && <span className="text-xs font-normal text-slate-400">(免校正)</span>} {isRequired && !allowNA && <span className="text-red-500">*</span>}
           </span>
           {/* Only show corrected AED time if it requires calibration */}
@@ -177,7 +177,7 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
                      </label>
                      <div className="flex-1 flex gap-1">
                         {isNA ? (
-                           <div className="w-full text-xs p-1 h-10 border border-slate-200 rounded bg-slate-100 text-slate-500 flex items-center justify-center font-bold">
+                           <div className="w-full text-xs p-1 h-10 border border-medical-100 rounded bg-medical-50 text-slate-500 flex items-center justify-center font-bold">
                                未執行 / 不適用
                            </div>
                         ) : (
@@ -215,7 +215,7 @@ export const TimeRecording: React.FC<Props> = ({ data, onChange }) => {
 
   return (
     <div className="space-y-2 animate-fadeIn pb-24">
-      <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-100 text-yellow-800 text-xs mb-4">
+      <div className="bg-accent-50 p-3 rounded-lg border border-accent-200 text-medical-600 text-xs mb-4">
         <i className="fas fa-exclamation-triangle mr-1"></i>
         標示 * 為必填。輸入時間將自動帶入案件日期。時間順序錯誤將顯示紅字。
       </div>

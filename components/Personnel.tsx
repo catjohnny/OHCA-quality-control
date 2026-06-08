@@ -11,8 +11,8 @@ interface Props {
 export const Personnel: React.FC<Props> = ({ info, onChange }) => {
   return (
     <div className="space-y-4 animate-fadeIn">
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <h3 className="font-bold text-lg text-slate-800 mb-4 border-b pb-2">案件情境</h3>
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-medical-100">
+        <h3 className="font-bold text-lg text-medical-600 mb-4 border-b border-medical-100 pb-2">案件情境</h3>
         <InputGroup
           label="OHCA 類型"
           as="select"
@@ -31,8 +31,8 @@ export const Personnel: React.FC<Props> = ({ info, onChange }) => {
         />
       </div>
 
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <h3 className="font-bold text-lg text-slate-800 mb-4 border-b pb-2">出勤人員</h3>
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-medical-100">
+        <h3 className="font-bold text-lg text-medical-600 mb-4 border-b border-medical-100 pb-2">出勤人員</h3>
         <div className="grid grid-cols-2 gap-4">
           <InputGroup label="人員 1" value={info.member1} onChange={(e) => onChange('member1', e.target.value)} required />
           <InputGroup label="人員 2" value={info.member2} onChange={(e) => onChange('member2', e.target.value)} required />
@@ -43,8 +43,8 @@ export const Personnel: React.FC<Props> = ({ info, onChange }) => {
         </div>
       </div>
 
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <h3 className="font-bold text-lg text-slate-800 mb-4 border-b pb-2">個人備忘錄</h3>
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-medical-100">
+        <h3 className="font-bold text-lg text-medical-600 mb-4 border-b border-medical-100 pb-2">個人備忘錄</h3>
         <InputGroup
           label="備忘錄 (網址將自動轉換)"
           as="textarea"
@@ -56,7 +56,7 @@ export const Personnel: React.FC<Props> = ({ info, onChange }) => {
           <div className="mt-2 p-3 bg-slate-50 rounded text-sm break-all">
             {info.memo.split(/(https?:\/\/[^\s]+)/g).map((part, i) => 
               part.match(/^https?:\/\//) ? (
-                <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-medical-600 underline">
                   🔗 開啟連結
                 </a>
               ) : part

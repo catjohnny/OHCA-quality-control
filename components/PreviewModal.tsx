@@ -1,10 +1,10 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { AppState, InterruptionItem } from '../types';
 import { formatTimeDisplay } from '../services/timeUtils';
 import { buildOrderedRecord, getCorrectedTimes, validateRecord } from '../services/recordExport';
 
-const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbxyAKc44zmIyPndSVNuDpiIqKzR1Q-Nom1pT2p9k_VZMAUB6vBlkNUOel_bYJcnpfLMTA/exec"; 
-const GOOGLE_SHEET_URL: string = "https://docs.google.com/spreadsheets/d/1DxjxcX5eklxkuXsQwRphw1z_eT8AOgD9OJavBCpjfcM/edit?gid=20459570#gid=20459570";
+const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbzGr7TNFZqyWhpkBpReoHhjV2fO0nmndtA9oKh3ZyquTbl1ZCLpTGH4mV2XCkfzvEr8fg/exec"; 
+const GOOGLE_SHEET_URL: string = "https://docs.google.com/spreadsheets/d/1DxjxcX5eklxkuXsQwRphw1z_eT8AOgD9OJavBCpjfcM/edit?gid=0#gid=0";
 
 interface Props {
   data: AppState;
@@ -297,8 +297,8 @@ ${data.basicInfo.memo || '無'}`;
   };
 
   const renderSectionHeader = (title: string, icon: string) => (
-    <div className="bg-slate-100 px-3 py-2 rounded-lg font-bold text-slate-700 text-sm flex items-center mt-6 mb-2 first:mt-0">
-      <i className={`fas ${icon} mr-2 w-5 text-center text-medical-600`}></i>
+    <div className="bg-medical-50 px-3 py-2 rounded-lg font-bold text-medical-600 text-sm flex items-center mt-6 mb-2 first:mt-0 border border-medical-100">
+      <i className={`fas ${icon} mr-2 w-5 text-center text-accent-600`}></i>
       {title}
     </div>
   );
@@ -314,16 +314,16 @@ ${data.basicInfo.memo || '無'}`;
       return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fadeIn">
               <div className="bg-white rounded-xl p-8 text-center shadow-xl max-w-sm w-full">
-                  <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 bg-accent-50 text-accent-600 rounded-full flex items-center justify-center mx-auto mb-4 border border-accent-200">
                       <i className="fas fa-check text-2xl"></i>
                   </div>
-                  <h2 className="text-xl font-bold text-slate-800 mb-2">上傳成功</h2>
+                  <h2 className="text-xl font-bold text-medical-600 mb-2">上傳成功</h2>
                   <p className="text-slate-500 mb-6">資料已成功傳送至 Google Sheet</p>
                   
                   <div className="space-y-3">
                     <button 
                         onClick={handleCopyResult}
-                        className="w-full py-3 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-900 transition-colors shadow-lg flex items-center justify-center gap-2"
+                        className="w-full py-3 bg-medical-600 text-white rounded-lg font-bold hover:bg-medical-700 transition-colors shadow-lg flex items-center justify-center gap-2"
                     >
                         <i className="fas fa-copy"></i> 複製品管成果文字
                     </button>
@@ -331,7 +331,7 @@ ${data.basicInfo.memo || '無'}`;
                         href={GOOGLE_SHEET_URL}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-colors shadow-lg flex items-center justify-center gap-2"
+                        className="w-full py-3 bg-accent-500 text-medical-900 rounded-lg font-bold hover:bg-accent-600 transition-colors shadow-lg flex items-center justify-center gap-2"
                     >
                         <i className="fas fa-table"></i> 前往資料庫
                     </a>
@@ -357,8 +357,8 @@ ${data.basicInfo.memo || '無'}`;
         
         {/* Header: Fixed at top (static flex item) */}
         <div className="bg-white border-b border-slate-100 p-4 flex justify-between items-center shrink-0 z-10">
-            <h2 className="text-lg font-bold text-slate-800 flex items-center">
-                <i className="fas fa-clipboard-check text-medical-600 mr-2"></i>
+            <h2 className="text-lg font-bold text-medical-600 flex items-center">
+                <i className="fas fa-clipboard-check text-accent-600 mr-2"></i>
                 品管成果預覽
             </h2>
             <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors p-2 -mr-2">
@@ -401,7 +401,7 @@ ${data.basicInfo.memo || '無'}`;
 
             {/* Basic Info Preview */}
             {renderSectionHeader('基本資料', 'fa-info-circle')}
-            <div className="bg-white rounded-lg border border-slate-200 px-4 py-1">
+            <div className="bg-white rounded-lg border border-medical-100 px-4 py-1">
                 {renderSimpleRow('案件編號', data.basicInfo.caseId)}
                 {renderSimpleRow('日期', data.basicInfo.date)}
                 {renderSimpleRow('大隊別', data.basicInfo.battalion)}
@@ -411,7 +411,7 @@ ${data.basicInfo.memo || '無'}`;
 
             {/* Time Metrics */}
             {renderSectionHeader('時間指標', 'fa-stopwatch')}
-            <div className="bg-white rounded-lg border border-slate-200 px-4 py-1">
+            <div className="bg-white rounded-lg border border-medical-100 px-4 py-1">
                 {renderSimpleRow('判斷OHCA ⮕ CPR開始', formatDurationDisplay(cprDelay))}
                 {renderSimpleRow('判斷OHCA ⮕ 貼片貼上', formatDurationDisplay(padsDelay))}
                 {renderSimpleRow('第一次BVM所需時間', bvmText)}
@@ -421,20 +421,20 @@ ${data.basicInfo.memo || '無'}`;
 
             {/* Interruptions */}
             {renderSectionHeader('CPR 中斷', 'fa-pause-circle')}
-            <div className="bg-white rounded-lg border border-slate-200 px-4 py-1">
+            <div className="bg-white rounded-lg border border-medical-100 px-4 py-1">
                 {renderSimpleRow('貼片前中斷', formatDurationDisplay(interruptionPads))}
                 {renderSimpleRow('MCPR前中斷', formatDurationDisplay(interruptionMcpr))}
             </div>
 
             {/* CCF */}
             {renderSectionHeader('CCF 數據', 'fa-chart-pie')}
-            <div className="bg-white rounded-lg border border-slate-200 px-4 py-1">
+            <div className="bg-white rounded-lg border border-medical-100 px-4 py-1">
                 {renderSimpleRow('整體 CCF', overallCCF)}
             </div>
 
             {/* Technical */}
             {renderSectionHeader('處置認列', 'fa-stethoscope')}
-            <div className="bg-white rounded-lg border border-slate-200 px-4 py-1">
+            <div className="bg-white rounded-lg border border-medical-100 px-4 py-1">
                 {renderSimpleRow('AED 貼片位置是否正確', data.technicalInfo.aedPadCorrect || '--')}
                 {renderSimpleRow('是否檢查頸動脈', data.technicalInfo.checkPulse || '--')}
                 {renderSimpleRow('壓胸機有無使用', data.technicalInfo.useCompressor || '--')}
@@ -449,7 +449,7 @@ ${data.basicInfo.memo || '無'}`;
             </div>
 
             {renderSectionHeader('回饋貼片', 'fa-wave-square')}
-            <div className="bg-white rounded-lg border border-slate-200 px-4 py-1">
+            <div className="bg-white rounded-lg border border-medical-100 px-4 py-1">
                 {renderSimpleRow('架設MCPR前平均徒手按壓深度(cm)', data.feedbackPatchInfo.manualDepthBeforeMcpr || '--')}
                 {renderSimpleRow('架設MCPR前平均徒手按壓速率(cpm)', data.feedbackPatchInfo.manualRateBeforeMcpr || '--')}
                 {renderSimpleRow('架設MCPR前平均徒手釋放速度(mm/s)', data.feedbackPatchInfo.manualReleaseVelocityBeforeMcpr || '--')}
@@ -483,7 +483,7 @@ ${data.basicInfo.memo || '無'}`;
                 className={`flex-[2] py-3 rounded-xl font-bold shadow-lg transition-all transform flex justify-center items-center
                     ${(isSubmitting || !isValid)
                         ? 'bg-slate-400 text-white cursor-not-allowed shadow-none transform-none' 
-                        : 'bg-gradient-to-r from-medical-600 to-medical-500 text-white hover:shadow-medical-200 active:scale-95'}`}
+                        : 'bg-accent-500 text-medical-900 hover:bg-accent-600 hover:shadow-accent-500/20 active:scale-95'}`}
             >
                 {isSubmitting ? (
                     <><i className="fas fa-spinner fa-spin mr-2"></i> 上傳中...</>

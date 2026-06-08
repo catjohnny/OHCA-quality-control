@@ -17,7 +17,7 @@ const App: React.FC = () => {
 
   // Load from local storage for persistence on refresh
   useEffect(() => {
-    const saved = localStorage.getItem('ohca-app-state-v3'); // Updated version key for new state structure
+    const saved = localStorage.getItem('ohca-app-state-v4') || localStorage.getItem('ohca-app-state-v3');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -49,7 +49,7 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('ohca-app-state-v3', JSON.stringify(data));
+    localStorage.setItem('ohca-app-state-v4', JSON.stringify(data));
   }, [data]);
 
   const updateCalibration = (key: any, field: any, value: string) => {
@@ -234,39 +234,41 @@ const App: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen pb-24 bg-slate-50 text-slate-800">
+    <div className="min-h-screen pb-24 bg-[#F4F6F8] text-medical-600">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-md shadow-sm z-40 px-4 py-2 flex justify-between items-center border-b border-slate-200">
+      <header className="fixed top-0 left-0 right-0 bg-medical-600/95 backdrop-blur-md shadow-lg shadow-medical-900/10 z-40 px-4 py-2 flex justify-between items-center border-b border-accent-500/70">
         <div className="flex items-center gap-3">
-            <img 
-                src="https://cdn-icons-png.flaticon.com/512/2966/2966327.png" 
-                alt="Logo" 
-                className="w-8 h-8 object-contain"
-            />
+            <div className="w-9 h-9 rounded-lg bg-white/95 border border-accent-500/40 flex items-center justify-center shadow-sm">
+                <img 
+                    src="https://cdn-icons-png.flaticon.com/512/2966/2966327.png" 
+                    alt="Logo" 
+                    className="w-6 h-6 object-contain"
+                />
+            </div>
             <div className="flex flex-col">
-                <h1 className="font-bold text-lg text-slate-900 leading-tight">
+                <h1 className="font-bold text-lg text-white leading-tight">
                     <div>新北 OHCA</div>
                     <div>品管系統</div>
                 </h1>
-                <span className="text-[10px] text-slate-400 font-mono">Ver.3</span>
+                <span className="text-[10px] text-accent-200 font-mono">Ver.4</span>
             </div>
         </div>
         <div className="flex gap-2">
             <button 
                 onClick={handleReset}
-                className="bg-white text-slate-600 border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center"
+                className="bg-white/10 text-white border border-white/25 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-white/20 transition-colors flex items-center"
             >
                 <i className="fas fa-plus mr-1"></i> <span className="inline">新案件</span>
             </button>
             <button
                 onClick={handleExport}
-                className="bg-emerald-600 text-white px-3 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-md flex items-center"
+                className="bg-white text-medical-600 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-accent-50 transition-colors shadow-md flex items-center"
             >
                 <i className="fas fa-file-export mr-1"></i> <span className="inline">匯出</span>
             </button>
             <button 
                 onClick={() => setShowPreview(true)}
-                className="bg-medical-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-medical-700 transition-colors shadow-medical-200 shadow-md flex items-center"
+                className="bg-accent-500 text-medical-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-accent-600 transition-colors shadow-md shadow-accent-500/20 flex items-center"
             >
                 送出 <i className="fas fa-paper-plane ml-2"></i>
             </button>
@@ -276,7 +278,7 @@ const App: React.FC = () => {
       {/* Main Content */}
       <main className="pt-20 px-4 max-w-3xl mx-auto">
         <div className="mb-6">
-            <h2 className="text-xl font-bold text-slate-900 mb-1">{tabs[activeTab].title}</h2>
+            <h2 className="text-xl font-bold text-medical-600 mb-1">{tabs[activeTab].title}</h2>
             <p className="text-slate-500 text-xs">
                 {activeTab === 0 && "請優先填寫基本資料"}
                 {activeTab === 1 && "請校正密錄器與 AED 時間"}
@@ -291,14 +293,14 @@ const App: React.FC = () => {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-1 z-40 pb-safe overflow-x-auto">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-medical-100 px-2 py-1 z-40 pb-safe overflow-x-auto shadow-[0_-10px_30px_rgba(10,37,64,0.08)]">
         <div className="flex justify-between min-w-full md:justify-center md:gap-8">
           {tabs.map((tab, index) => (
             <button
               key={index}
               onClick={() => setActiveTab(index)}
               className={`flex flex-col items-center justify-center p-2 min-w-[60px] flex-1 rounded-lg transition-colors ${
-                activeTab === index ? 'text-medical-600 bg-blue-50' : 'text-slate-400 hover:text-slate-600'
+                activeTab === index ? 'text-medical-600 bg-accent-50 border border-accent-200' : 'text-slate-400 hover:text-medical-600'
               }`}
             >
               <i className={`fas ${tab.icon} text-lg mb-1`}></i>

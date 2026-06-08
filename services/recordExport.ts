@@ -3,6 +3,7 @@ import { calculateCorrectedAedTime } from './timeUtils';
 
 export const EXPORT_HEADERS = [
   'Reviewer',
+  'OHCA 發現/通報時機',
   'Found (Adj)',
   'Contact (Adj)',
   'OHCA Judge (Adj)',
@@ -31,8 +32,8 @@ export const EXPORT_HEADERS = [
   '目標中 - 徒手按壓(%)',
   '去顫前停滯時間(未電擊=N/A)',
   '去顫後停滯時間(未電擊=N/A)',
-  'Pads Delay (s)',
-  'Pre-Pads Comp Time',
+  '辨識OHCA至AED關機/PAD off時間',
+  'Time in compressions(判斷OHCA至AED貼上貼片區間)',
   'Pads time',
   'Pre-MCPR Comp Time',
   'Post-MCPR Compression Time',
@@ -167,20 +168,20 @@ export const validateRecord = (data: AppState, times = getCorrectedTimes(data)) 
 
 export const buildOrderedRecord = (data: AppState) => {
   const times = getCorrectedTimes(data);
-  const interruptionPads = calculateInterruption(data.interruptionRecords.beforePads);
   const interruptionMcpr = calculateInterruption(data.interruptionRecords.beforeMcpr);
   const isMcprNA = data.timeRecords.mcprSetup.emt1 === 'N/A';
   const durationOhcaToPads = getSafeDuration(times.ohca, times.pads);
   const durationPadsToMcpr = isMcprNA ? getSafeDuration(times.pads, times.aedOff) : getSafeDuration(times.pads, times.mcpr);
 
-  const padsDelay = getSafeDuration(times.ohca, times.pads);
-  const prePadsCompTime = durationOhcaToPads !== null ? durationOhcaToPads - interruptionPads : '';
+  const ohcaToAedOff = getSafeDuration(times.ohca, times.aedOff);
+  const ohcaToPads = durationOhcaToPads;
   const padsTime = getSafeDuration(times.pads, times.aedOff);
   const preMcprCompTime = durationPadsToMcpr !== null ? durationPadsToMcpr - interruptionMcpr : '';
   const postMcprCompressionTime = getSafeDuration(times.mcpr, times.aedOff);
 
   return {
     'Reviewer': data.basicInfo.reviewer,
+    'OHCA 發現/通報時機': data.basicInfo.notificationTime,
     'Found (Adj)': formatDateTime(times.found),
     'Contact (Adj)': formatDateTime(times.contact),
     'OHCA Judge (Adj)': formatDateTime(times.ohca),
@@ -209,8 +210,8 @@ export const buildOrderedRecord = (data: AppState) => {
     '目標中 - 徒手按壓(%)': data.feedbackPatchInfo.targetManualCompressionPercent,
     '去顫前停滯時間(未電擊=N/A)': data.feedbackPatchInfo.preShockPauseTime,
     '去顫後停滯時間(未電擊=N/A)': data.feedbackPatchInfo.postShockPauseTime,
-    'Pads Delay (s)': padsDelay ?? '',
-    'Pre-Pads Comp Time': prePadsCompTime,
+    '辨識OHCA至AED關機/PAD off時間': ohcaToAedOff ?? '',
+    'Time in compressions(判斷OHCA至AED貼上貼片區間)': ohcaToPads ?? '',
     'Pads time': padsTime ?? '',
     'Pre-MCPR Comp Time': preMcprCompTime,
     'Post-MCPR Compression Time': postMcprCompressionTime ?? '',
@@ -241,7 +242,7 @@ export const exportRecordCsv = (data: AppState) => {
     EXPORT_HEADERS.map(csvEscape).join(','),
     EXPORT_HEADERS.map((header) => csvEscape(record[header])).join(','),
   ];
-  downloadTextFile('\uFEFF' + rows.join('\r\n'), `OHCA-${data.basicInfo.caseId || 'record'}-Ver3.csv`, 'text/csv;charset=utf-8');
+  downloadTextFile('\uFEFF' + rows.join('\r\n'), `OHCA-${data.basicInfo.caseId || 'record'}-Ver4.csv`, 'text/csv;charset=utf-8');
 };
 
 export const exportRecordExcel = (data: AppState) => {
@@ -249,5 +250,5 @@ export const exportRecordExcel = (data: AppState) => {
   const cells = EXPORT_HEADERS.map((header) => `<td>${String(record[header] ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`).join('');
   const headers = EXPORT_HEADERS.map((header) => `<th>${header}</th>`).join('');
   const html = `\uFEFF<html><head><meta charset="UTF-8"></head><body><table><thead><tr>${headers}</tr></thead><tbody><tr>${cells}</tr></tbody></table></body></html>`;
-  downloadTextFile(html, `OHCA-${data.basicInfo.caseId || 'record'}-Ver3.xls`, 'application/vnd.ms-excel;charset=utf-8');
+  downloadTextFile(html, `OHCA-${data.basicInfo.caseId || 'record'}-Ver4.xls`, 'application/vnd.ms-excel;charset=utf-8');
 };

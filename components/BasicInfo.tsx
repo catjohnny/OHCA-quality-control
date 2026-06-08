@@ -24,8 +24,8 @@ export const BasicInfo: React.FC<Props> = ({ info, onChange }) => {
   return (
     <div className="space-y-4 animate-fadeIn">
       {/* Administrative Data */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
-        <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-2">案件資料</h3>
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-medical-100 space-y-4">
+        <h3 className="font-bold text-lg text-medical-600 border-b border-medical-100 pb-2 mb-2">案件資料</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InputGroup
             label="審核者姓名"
@@ -74,8 +74,8 @@ export const BasicInfo: React.FC<Props> = ({ info, onChange }) => {
       </div>
 
       {/* Scenario Data */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
-        <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-2">案件情境</h3>
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-medical-100 space-y-4">
+        <h3 className="font-bold text-lg text-medical-600 border-b border-medical-100 pb-2 mb-2">案件情境</h3>
         <InputGroup
           label="OHCA 類型"
           as="select"
@@ -95,8 +95,8 @@ export const BasicInfo: React.FC<Props> = ({ info, onChange }) => {
       </div>
 
       {/* Personnel Data */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
-        <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-2">出勤人員</h3>
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-medical-100 space-y-4">
+        <h3 className="font-bold text-lg text-medical-600 border-b border-medical-100 pb-2 mb-2">出勤人員</h3>
         <div className="grid grid-cols-2 gap-4">
           <InputGroup label="人員 1" value={info.member1} onChange={(e) => onChange('member1', e.target.value)} required />
           <InputGroup label="人員 2" value={info.member2} onChange={(e) => onChange('member2', e.target.value)} required />

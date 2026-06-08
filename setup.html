@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OHCA Ver.3 Google Sheet 設定</title>
+    <title>OHCA Ver.4 Google Sheet 設定</title>
     <style>
       body {
         margin: 0;
@@ -47,8 +47,8 @@
       button {
         border: 0;
         border-radius: 8px;
-        background: #0284c7;
-        color: white;
+        background: #FFAB00;
+        color: #0A2540;
         padding: 10px 14px;
         font-weight: 700;
         cursor: pointer;
@@ -61,8 +61,8 @@
   <body>
     <main>
       <div class="panel">
-        <h1>OHCA 品管系統 Ver.3 試算表設定</h1>
-        <p>此頁用來建立新版 Google Sheet 工作頁，欄位順序與 WebApp 匯出的 CSV / Excel 相同。完成部署後，WebApp 的「送出」會把資料寫入 <code>OHCA Ver3</code> 工作頁。</p>
+        <h1>OHCA 品管系統 Ver.4 試算表設定</h1>
+        <p>此頁用來建立新版 Google Sheet 工作頁，欄位順序與 WebApp 匯出的 CSV / Excel 相同。完成部署後，WebApp 的「送出」會把資料寫入 <code>OHCA Ver4</code> 工作頁。</p>
 
         <h2>設定步驟</h2>
         <ol>
@@ -74,10 +74,11 @@
         </ol>
 
         <button onclick="copyScript()">複製 Apps Script 程式碼</button>
-        <pre id="script"><code>const SHEET_NAME = 'OHCA Ver3';
+        <pre id="script"><code>const SHEET_NAME = 'OHCA Ver4';
 
 const EXPORT_HEADERS = [
   'Reviewer',
+  'OHCA 發現/通報時機',
   'Found (Adj)',
   'Contact (Adj)',
   'OHCA Judge (Adj)',
@@ -106,8 +107,8 @@ const EXPORT_HEADERS = [
   '目標中 - 徒手按壓(%)',
   '去顫前停滯時間(未電擊=N/A)',
   '去顫後停滯時間(未電擊=N/A)',
-  'Pads Delay (s)',
-  'Pre-Pads Comp Time',
+  '辨識OHCA至AED關機/PAD off時間',
+  'Time in compressions(判斷OHCA至AED貼上貼片區間)',
   'Pads time',
   'Pre-MCPR Comp Time',
   'Post-MCPR Compression Time',

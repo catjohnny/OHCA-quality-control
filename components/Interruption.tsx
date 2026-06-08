@@ -66,9 +66,9 @@ export const Interruption: React.FC<Props> = ({ records, onChange }) => {
     offsetIndex: number
   ) => (
     <div className="mb-8">
-      <div className="flex justify-between items-center mb-3 border-b border-slate-200 pb-2">
-        <h3 className="font-bold text-slate-800">{title}</h3>
-        <span className="text-sm bg-red-100 text-red-800 px-2 py-1 rounded font-mono font-bold">
+      <div className="flex justify-between items-center mb-3 border-b border-medical-100 pb-2">
+        <h3 className="font-bold text-medical-600">{title}</h3>
+        <span className="text-sm bg-accent-50 text-medical-600 border border-accent-200 px-2 py-1 rounded font-mono font-bold">
           總和: {total} 秒
         </span>
       </div>
@@ -83,7 +83,7 @@ export const Interruption: React.FC<Props> = ({ records, onChange }) => {
           const isReasonMissing = isFilled && !item.reason;
 
           return (
-            <div key={item.id} className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm text-sm">
+            <div key={item.id} className="bg-white p-3 rounded-lg border border-medical-100 shadow-sm text-sm">
               <div className="flex justify-between items-center mb-2">
                  <span className="font-semibold text-slate-500 text-xs">紀錄 {index + 1}</span>
                  {duration > 0 && <span className="text-xs font-mono text-medical-600">{duration}秒</span>}
@@ -98,7 +98,7 @@ export const Interruption: React.FC<Props> = ({ records, onChange }) => {
                       placeholder="例如 1106"
                       value={item.start}
                       onChange={(e) => handleTimeInput(sectionKey, index, 'start', e.target.value, globalIndex)}
-                      className={`w-full text-xs p-1 border rounded focus:ring-1 focus:ring-medical-500 outline-none transition-colors tracking-widest text-center ${item.start ? 'bg-white border-medical-200' : 'bg-slate-50 border-slate-200'}`}
+                      className={`w-full text-xs p-1 border rounded focus:ring-1 focus:ring-medical-500 outline-none transition-colors tracking-widest text-center ${item.start ? 'bg-white border-medical-200' : 'bg-medical-50 border-medical-100'}`}
                    />
                 </div>
                 <div>
@@ -109,7 +109,7 @@ export const Interruption: React.FC<Props> = ({ records, onChange }) => {
                       placeholder="例如 1130"
                       value={item.end}
                       onChange={(e) => handleTimeInput(sectionKey, index, 'end', e.target.value, globalIndex)}
-                      className={`w-full text-xs p-1 border rounded focus:ring-1 focus:ring-medical-500 outline-none transition-colors tracking-widest text-center ${item.end ? 'bg-white border-medical-200' : 'bg-slate-50 border-slate-200'}`}
+                      className={`w-full text-xs p-1 border rounded focus:ring-1 focus:ring-medical-500 outline-none transition-colors tracking-widest text-center ${item.end ? 'bg-white border-medical-200' : 'bg-medical-50 border-medical-100'}`}
                    />
                 </div>
               </div>
@@ -119,7 +119,7 @@ export const Interruption: React.FC<Props> = ({ records, onChange }) => {
                     ref={(el) => { reasonRefs.current[globalIndex] = el }}
                     value={item.reason}
                     onChange={(e) => onChange(sectionKey, index, 'reason', e.target.value)}
-                    className={`w-full text-xs p-2 border rounded appearance-none ${isReasonMissing ? 'border-red-500 bg-red-50 focus:ring-red-200' : 'bg-slate-50 focus:bg-white'}`}
+                    className={`w-full text-xs p-2 border rounded appearance-none ${isReasonMissing ? 'border-red-500 bg-red-50 focus:ring-red-200' : 'bg-medical-50 border-medical-100 focus:bg-white'}`}
                 >
                     <option value="">選擇中斷原因 {isFilled ? '(必填)' : ''}</option>
                     {INTERRUPTION_REASONS.map(r => (
@@ -140,7 +140,7 @@ export const Interruption: React.FC<Props> = ({ records, onChange }) => {
 
   return (
     <div className="animate-fadeIn pb-24">
-       <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 text-blue-800 text-xs mb-4">
+       <div className="bg-accent-50 p-3 rounded-lg border border-accent-200 text-medical-600 text-xs mb-4">
         <i className="fas fa-info-circle mr-1"></i>
         請輸入 4 位數時間 (MMSS)，例如 1106 代表 11分06秒。填寫開始後會自動跳轉。
       </div>
