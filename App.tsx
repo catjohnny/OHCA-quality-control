@@ -17,7 +17,7 @@ const App: React.FC = () => {
 
   // Load from local storage for persistence on refresh
   useEffect(() => {
-    const saved = localStorage.getItem('ohca-app-state-v4') || localStorage.getItem('ohca-app-state-v3');
+    const saved = localStorage.getItem('ohca-app-state-v5') || localStorage.getItem('ohca-app-state-v4') || localStorage.getItem('ohca-app-state-v3');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -49,7 +49,7 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('ohca-app-state-v4', JSON.stringify(data));
+    localStorage.setItem('ohca-app-state-v5', JSON.stringify(data));
   }, [data]);
 
   const updateCalibration = (key: any, field: any, value: string) => {
@@ -250,7 +250,7 @@ const App: React.FC = () => {
                     <div>新北 OHCA</div>
                     <div>品管系統</div>
                 </h1>
-                <span className="text-[10px] text-accent-200 font-mono">Ver.4</span>
+                <span className="text-[10px] text-accent-200 font-mono">Ver.5</span>
             </div>
         </div>
         <div className="flex gap-2">
