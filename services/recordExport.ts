@@ -4,6 +4,39 @@ import { calculateCorrectedAedTime } from './timeUtils';
 export const EXPORT_HEADERS = [
   'Reviewer',
   'OHCA 發現/通報時機',
+  '接觸患者 (Adj)',
+  'OHCA Judge (Adj)',
+  'Check Pulse',
+  'CPR Start (Adj)',
+  'Ventilation (Adj)',
+  'First Med (Adj)',
+  'Compressor Used',
+  'MCPR Setup (Adj)',
+  'MCPR Interruption AED',
+  'Pads On (Adj)',
+  'Initial Rhythm',
+  '首次電擊 (免校正)',
+  'AED初始心律首次電擊之後的心律',
+  'AED Off (Adj)',
+  'Endo Attempts',
+  'Airway Device',
+  'Airway (Adj)',
+  '建立呼吸道中斷(秒)',
+  '到院前啟動ECMO(3-19)',
+  '架設MCPR前平均徒手按壓深度(cm)',
+  '架設MCPR前平均徒手按壓速率(cpm)',
+  '架設MCPR前平均徒手釋放速度(mm/s)',
+  '目標中 - 徒手深度(%)',
+  '目標中 - 徒手速率(%)',
+  '目標中 - 徒手按壓(%)',
+  '去顫前停滯時間(未電擊=N/A)',
+  '去顫後停滯時間(未電擊=N/A)',
+  '辨識OHCA至AED關機/PAD off時間',
+  'Time in compressions(判斷OHCA至AED貼上貼片區間)',
+  'Pads time',
+  'Pre-MCPR Comp Time',
+  'Post-MCPR Compression Time',
+  'AED貼片位置是否正確',
 ];
 
 export const getCorrectedTimes = (data: AppState) => {
@@ -133,9 +166,54 @@ export const validateRecord = (data: AppState, times = getCorrectedTimes(data)) 
 };
 
 export const buildOrderedRecord = (data: AppState) => {
+  const times = getCorrectedTimes(data);
+  const interruptionMcpr = calculateInterruption(data.interruptionRecords.beforeMcpr);
+  const isMcprNA = data.timeRecords.mcprSetup.emt1 === 'N/A';
+  const durationOhcaToPads = getSafeDuration(times.ohca, times.pads);
+  const durationPadsToMcpr = isMcprNA ? getSafeDuration(times.pads, times.aedOff) : getSafeDuration(times.pads, times.mcpr);
+
+  const ohcaToAedOff = getSafeDuration(times.ohca, times.aedOff);
+  const ohcaToPads = durationOhcaToPads;
+  const padsTime = getSafeDuration(times.pads, times.aedOff);
+  const preMcprCompTime = durationPadsToMcpr !== null ? durationPadsToMcpr - interruptionMcpr : '';
+  const postMcprCompressionTime = getSafeDuration(times.mcpr, times.aedOff);
+
   return {
     'Reviewer': [data.basicInfo.reviewer, data.basicInfo.caseId].filter(Boolean).join('_'),
     'OHCA 發現/通報時機': data.basicInfo.notificationTime,
+    '接觸患者 (Adj)': formatDateTime(times.contact),
+    'OHCA Judge (Adj)': formatDateTime(times.ohca),
+    'Check Pulse': data.technicalInfo.checkPulse,
+    'CPR Start (Adj)': formatDateTime(times.cpr),
+    'Ventilation (Adj)': formatDateTime(times.vent),
+    'First Med (Adj)': formatDateTime(times.med),
+    'Compressor Used': data.technicalInfo.useCompressor,
+    'MCPR Setup (Adj)': formatDateTime(times.mcpr),
+    'MCPR Interruption AED': interruptionMcpr,
+    'Pads On (Adj)': formatDateTime(times.pads),
+    'Initial Rhythm': data.technicalInfo.initialRhythm,
+    '首次電擊 (免校正)': formatDateTime(times.firstShock),
+    'AED初始心律首次電擊之後的心律': data.technicalInfo.postShockRhythm,
+    'AED Off (Adj)': formatDateTime(times.aedOff),
+    'Endo Attempts': data.technicalInfo.endoAttempts,
+    'Airway Device': data.technicalInfo.airwayDevice,
+    'Airway (Adj)': formatDateTime(times.airway),
+    '建立呼吸道中斷(秒)': data.technicalInfo.airwayInterruptionSeconds,
+    '到院前啟動ECMO(3-19)': data.technicalInfo.prehospitalEcmo,
+    '架設MCPR前平均徒手按壓深度(cm)': data.feedbackPatchInfo.manualDepthBeforeMcpr,
+    '架設MCPR前平均徒手按壓速率(cpm)': data.feedbackPatchInfo.manualRateBeforeMcpr,
+    '架設MCPR前平均徒手釋放速度(mm/s)': data.feedbackPatchInfo.manualReleaseVelocityBeforeMcpr,
+    '目標中 - 徒手深度(%)': data.feedbackPatchInfo.targetManualDepthPercent,
+    '目標中 - 徒手速率(%)': data.feedbackPatchInfo.targetManualRatePercent,
+    '目標中 - 徒手按壓(%)': data.feedbackPatchInfo.targetManualCompressionPercent,
+    '去顫前停滯時間(未電擊=N/A)': data.feedbackPatchInfo.preShockPauseTime,
+    '去顫後停滯時間(未電擊=N/A)': data.feedbackPatchInfo.postShockPauseTime,
+    '辨識OHCA至AED關機/PAD off時間': ohcaToAedOff ?? '',
+    'Time in compressions(判斷OHCA至AED貼上貼片區間)': ohcaToPads ?? '',
+    'Pads time': padsTime ?? '',
+    'Pre-MCPR Comp Time': preMcprCompTime,
+    'Post-MCPR Compression Time': postMcprCompressionTime ?? '',
+    'AED貼片位置是否正確': data.technicalInfo.aedPadCorrect,
   };
 };
 
@@ -162,7 +240,7 @@ export const exportRecordCsv = (data: AppState) => {
     EXPORT_HEADERS.map(csvEscape).join(','),
     EXPORT_HEADERS.map((header) => csvEscape(record[header])).join(','),
   ];
-  downloadTextFile('\uFEFF' + rows.join('\r\n'), `OHCA-${data.basicInfo.caseId || 'record'}-Ver5.csv`, 'text/csv;charset=utf-8');
+  downloadTextFile('\uFEFF' + rows.join('\r\n'), `OHCA-${data.basicInfo.caseId || 'record'}-Ver6.csv`, 'text/csv;charset=utf-8');
 };
 
 export const exportRecordExcel = (data: AppState) => {
@@ -170,5 +248,5 @@ export const exportRecordExcel = (data: AppState) => {
   const cells = EXPORT_HEADERS.map((header) => `<td>${String(record[header] ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`).join('');
   const headers = EXPORT_HEADERS.map((header) => `<th>${header}</th>`).join('');
   const html = `\uFEFF<html><head><meta charset="UTF-8"></head><body><table><thead><tr>${headers}</tr></thead><tbody><tr>${cells}</tr></tbody></table></body></html>`;
-  downloadTextFile(html, `OHCA-${data.basicInfo.caseId || 'record'}-Ver5.xls`, 'application/vnd.ms-excel;charset=utf-8');
+  downloadTextFile(html, `OHCA-${data.basicInfo.caseId || 'record'}-Ver6.xls`, 'application/vnd.ms-excel;charset=utf-8');
 };

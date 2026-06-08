@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OHCA Ver.5 Google Sheet 設定</title>
+    <title>OHCA Ver.6 Google Sheet 設定</title>
     <style>
       body {
         margin: 0;
@@ -61,8 +61,8 @@
   <body>
     <main>
       <div class="panel">
-        <h1>OHCA 品管系統 Ver.5 試算表設定</h1>
-        <p>此頁用來建立新版 Google Sheet 工作頁，欄位順序與 WebApp 匯出的 CSV / Excel 相同。完成部署後，WebApp 的「送出」會把資料寫入 <code>OHCA Ver5</code> 工作頁。</p>
+        <h1>OHCA 品管系統 Ver.6 試算表設定</h1>
+        <p>此頁用來建立新版 Google Sheet 工作頁，欄位順序與 WebApp 匯出的 CSV / Excel 相同。完成部署後，WebApp 的「送出」會把資料寫入 <code>OHCA Ver6</code> 工作頁。</p>
 
         <h2>設定步驟</h2>
         <ol>
@@ -74,11 +74,44 @@
         </ol>
 
         <button onclick="copyScript()">複製 Apps Script 程式碼</button>
-        <pre id="script"><code>const SHEET_NAME = 'OHCA Ver5';
+        <pre id="script"><code>const SHEET_NAME = 'OHCA Ver6';
 
 const EXPORT_HEADERS = [
   'Reviewer',
   'OHCA 發現/通報時機',
+  '接觸患者 (Adj)',
+  'OHCA Judge (Adj)',
+  'Check Pulse',
+  'CPR Start (Adj)',
+  'Ventilation (Adj)',
+  'First Med (Adj)',
+  'Compressor Used',
+  'MCPR Setup (Adj)',
+  'MCPR Interruption AED',
+  'Pads On (Adj)',
+  'Initial Rhythm',
+  '首次電擊 (免校正)',
+  'AED初始心律首次電擊之後的心律',
+  'AED Off (Adj)',
+  'Endo Attempts',
+  'Airway Device',
+  'Airway (Adj)',
+  '建立呼吸道中斷(秒)',
+  '到院前啟動ECMO(3-19)',
+  '架設MCPR前平均徒手按壓深度(cm)',
+  '架設MCPR前平均徒手按壓速率(cpm)',
+  '架設MCPR前平均徒手釋放速度(mm/s)',
+  '目標中 - 徒手深度(%)',
+  '目標中 - 徒手速率(%)',
+  '目標中 - 徒手按壓(%)',
+  '去顫前停滯時間(未電擊=N/A)',
+  '去顫後停滯時間(未電擊=N/A)',
+  '辨識OHCA至AED關機/PAD off時間',
+  'Time in compressions(判斷OHCA至AED貼上貼片區間)',
+  'Pads time',
+  'Pre-MCPR Comp Time',
+  'Post-MCPR Compression Time',
+  'AED貼片位置是否正確',
 ];
 
 function setupSheet() {
